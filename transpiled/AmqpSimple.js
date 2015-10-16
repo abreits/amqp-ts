@@ -5,6 +5,7 @@
  * methods and properties starting with '_' signify that the scope of the item should be limited to
  * the inside of the enclosing namespace.
  */
+/// <reference path="../typings_custom/amqplib_callback/amqplib_callback.d.ts" />
 // simplified use of amqp exchanges and queues, wrapper for amqplib
 var Amqp = require("amqplib/callback_api");
 var Promise = require("bluebird");

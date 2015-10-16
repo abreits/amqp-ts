@@ -1,3 +1,4 @@
+/// <reference path="../typings_custom/amqplib_callback/amqplib_callback.d.ts" />
 /**
  * AmqpSimple.ts - provides a simple interface to read from and write to RabbitMQ amqp exchanges
  * Created by Ab on 17-9-2015.

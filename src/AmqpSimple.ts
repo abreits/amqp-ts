@@ -6,6 +6,8 @@
  * the inside of the enclosing namespace.
  */
 
+/// <reference path="../typings_custom/amqplib_callback/amqplib_callback.d.ts" />
+
 // simplified use of amqp exchanges and queues, wrapper for amqplib
 
 import * as Amqp from "amqplib/callback_api";

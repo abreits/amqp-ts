@@ -22,9 +22,6 @@
     },
     "winston/winston.d.ts": {
       "commit": "30387ec3dd6eb426cc48522fd3aef09ada83aa48"
-    },
-    "when/when.d.ts": {
-      "commit": "3a6e1b8988eba0ba74fe4db20c950242552857e2"
     }
   }
 }
