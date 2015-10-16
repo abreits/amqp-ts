@@ -1,0 +1,25 @@
+{
+  "name": "amqp-ts",
+  "version": "0.1.1",
+  "private": true,
+  "author": "Ab Reitsma",
+  "typings": "definitions/AmqpSimple.d.ts",
+  "dependencies": {
+    "amqplib": "^0.4.0",
+    "bluebird": "^2.10.2",
+    "winston": "^1.0.1"
+  },
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "del": "^1.1.1",
+    "gulp": "^3.8.11",
+    "gulp-add-src": "^0.2.0",
+    "gulp-sourcemaps": "^1.5.1",
+    "gulp-spawn-mocha": "^2.0.1",
+    "gulp-tslint": "^3.3.0",
+    "gulp-typescript": "^2.9.2",
+    "line-reader": "^0.2.4",
+    "merge2": "^0.3.6",
+    "source-map-support": "^0.3.1"
+  }
+}

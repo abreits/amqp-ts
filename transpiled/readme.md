@@ -1,0 +1,1 @@
+Javascript code, generated from Typescript src
