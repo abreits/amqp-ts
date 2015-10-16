@@ -219,7 +219,7 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 >
 > example
 >
->     // nomally not used directly, but from a connection
+>     // normally not used directly, but from a connection
 >     connection.declareExchange("exchangeName", "amq.topic", {durable: false});
 >     // calls internally
 >     var exchange = new Exchange(connection, "exchangeName", "amq.topic", {durable: false});
@@ -356,7 +356,7 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >
 > example
 >
->     // nomally not used directly, but from a connection
+>     // normally not used directly, but from a connection
 >     connection.declareQueue("queueName", "amq.topic", {durable: false});
 >     // calls internally
 >     var queue = new Queue(connection, "queueName", "amq.topic", {durable: false});
@@ -490,13 +490,13 @@ Normally only created from within a queue or exchange connection with `bind()` a
 >
 > example
 >
->     // nomally not used directly, but from a queue or exchange
+>     // normally not used directly, but from a queue or exchange
 >     queue.bind(exchange);
 >     destExchange.bind(sourceExchange);
 >     // but can also be called directly
 >     var binding = new Binding(logQueue, exchange, "*.log");
 
-##### `binding.delete(): Promise<void>`    <a name="queue_delete"></a>
+##### binding.delete(): Promise<void>    <a name="queue_delete"></a>
 > Removes the binding. Normally only called from within a queue or exchange with `unbind()`.
 >
 > result
@@ -504,7 +504,7 @@ Normally only created from within a queue or exchange connection with `bind()` a
 >
 > example
 >
->     // nomally not used directly, but from a queue or exchange
+>     // normally not used directly, but from a queue or exchange
 >     queue.unbind(exchange);
 >     destExchange.unbind(sourceExchange);
 >     // but can also be called directly
