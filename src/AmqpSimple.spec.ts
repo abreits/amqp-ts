@@ -6,7 +6,7 @@ import * as winston from "winston";
 import * as Chai from "chai";
 var expect = Chai.expect;
 
-import {AmqpSimple as Amqp} from "./AmqpSimple";
+import {AmqpSimple as Amqp} from "../lib/amqp-ts";
 
 /**
  * Until we get a good mock for amqplib we will test using a local rabbitmq instance
@@ -200,7 +200,7 @@ describe("Test AmqpSimple module", function() {
 
       connection.completeConfiguration().then(() => {
         // break connection
-        connection._connection.close((err) => {
+        (<any>connection)._connection.close((err) => {
           if (err) {
             done(err);
           } else {

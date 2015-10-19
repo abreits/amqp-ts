@@ -9,9 +9,11 @@
 import * as Amqp from "amqplib/callback_api";
 import * as Promise from "bluebird";
 export declare namespace AmqpSimple {
-    interface ReconnectStrategy {
-        retries: number;
-        interval: number;
+    namespace Connection {
+        interface ReconnectStrategy {
+            retries: number;
+            interval: number;
+        }
     }
     class Connection {
         initialized: Promise<void>;
@@ -28,7 +30,7 @@ export declare namespace AmqpSimple {
         _bindings: {
             [id: string]: Binding;
         };
-        constructor(url?: string, socketOptions?: any, reconnectStrategy?: ReconnectStrategy);
+        constructor(url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy);
         private rebuildConnection();
         private tryToConnect(retry, callback);
         _rebuildAll(err: any): Promise<void>;
@@ -43,8 +45,17 @@ export declare namespace AmqpSimple {
          * return promise that fulfills after all defined exchanges, queues and bindings have been removed
          */
         deleteConfiguration(): Promise<any>;
-        declareExchange(name: string, type?: string, options?: Amqp.Options.AssertExchange): Exchange;
-        declareQueue(name: string, options?: Amqp.Options.AssertQueue): Queue;
+        declareExchange(name: string, type?: string, options?: Exchange.DeclarationOptions): Exchange;
+        declareQueue(name: string, options?: Queue.DeclarationOptions): Queue;
+    }
+    namespace Exchange {
+        interface DeclarationOptions {
+            durable?: boolean;
+            internal?: boolean;
+            autoDelete?: boolean;
+            alternateExchange?: string;
+            arguments?: any;
+        }
     }
     class Exchange {
         initialized: Promise<Exchange>;
@@ -53,33 +64,56 @@ export declare namespace AmqpSimple {
         _name: string;
         _type: string;
         _options: Amqp.Options.AssertExchange;
-        constructor(connection: Connection, name: string, type?: string, options?: Amqp.Options.AssertExchange);
+        constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions);
         publish(content: any, routingKey?: string, options?: any): void;
         delete(): Promise<void>;
         bind(source: Exchange, pattern?: string, args?: any): Promise<Binding>;
         unbind(source: Exchange, pattern: string, args?: any): Promise<void>;
         consumerQueueName(): string;
-        startConsumer(onMessage: (msg: any) => void, options?: Amqp.Options.Consume): Promise<any>;
+        startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<any>;
         stopConsumer(): Promise<any>;
+    }
+    namespace Queue {
+        interface DeclarationOptions {
+            exclusive?: boolean;
+            durable?: boolean;
+            autoDelete?: boolean;
+            arguments?: any;
+            messageTtl?: number;
+            expires?: number;
+            deadLetterExchange?: string;
+            maxLength?: number;
+        }
+        interface StartConsumerOptions {
+            consumerTag?: string;
+            noLocal?: boolean;
+            noAck?: boolean;
+            exclusive?: boolean;
+            priority?: number;
+            arguments?: Object;
+        }
+        interface StartConsumerResult {
+            consumerTag: string;
+        }
+        interface DeleteResult {
+            messageCount: number;
+        }
     }
     class Queue {
         initialized: Promise<Queue>;
         _connection: Connection;
         _channel: Amqp.Channel;
         _name: string;
-        _options: Amqp.Options.AssertQueue;
+        _options: Queue.DeclarationOptions;
         _consumer: (msg: any) => void;
-        _consumerOptions: Amqp.Options.Consume;
+        _consumerOptions: Queue.StartConsumerOptions;
         _consumerTag: string;
-        _consumerInitialized: Promise<Amqp.Replies.Consume>;
-        constructor(connection: Connection, name: string, options?: Amqp.Options.AssertQueue);
+        _consumerInitialized: Promise<Queue.StartConsumerResult>;
+        constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
         publish(content: any, options?: any): void;
-        startConsumer(onMessage: (msg: any) => void, options?: Amqp.Options.Consume): Promise<Amqp.Replies.Consume>;
+        startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult>;
         stopConsumer(): Promise<void>;
-        /**
-         * must acknowledge message receipt
-         */
-        delete(): Promise<Amqp.Replies.DeleteQueue>;
+        delete(): Promise<Queue.DeleteResult>;
         bind(source: Exchange, pattern?: string, args?: any): Promise<Binding>;
         unbind(source: Exchange, pattern: string, args?: any): Promise<void>;
     }

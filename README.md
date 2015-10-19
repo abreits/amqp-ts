@@ -11,7 +11,7 @@ AmqpSimple (amqp-ts)
 Overview    <a name="overview"></a>
 --------
 
-AmqpSimple is a library for nodejs written in Typescript that simplifies communication with AMQP message busses. It has been tested on RabbitMQ. It is based on the [amqplib](http://www.squaremobius.net/amqp.node/) library by [Michael Bridgen (squaremo)](https://github.com/squaremo).
+AmqpSimple is a library for nodejs written in Typescript that simplifies communication with AMQP message busses. It has been tested on RabbitMQ. It uses the [amqplib](http://www.squaremobius.net/amqp.node/) library by [Michael Bridgen (squaremo)](https://github.com/squaremo).
 
 This is a work in progress currently in an alpha state.
 
@@ -51,7 +51,7 @@ sure that the queue is connected to the exchange when you send a message to the 
     exchange.send("Test");
 
     connection.completeConfiguration().then(() => {
-        // this message will be received because
+        // the following message will be received because
         // everything you defined earlier for this connection now exists
         exchange.send("Test2");
     });

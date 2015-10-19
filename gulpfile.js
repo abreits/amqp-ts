@@ -4,6 +4,7 @@
 
 var gulp = require('gulp');
 var del = require('del');
+var rename = require('gulp-rename');
 var merge = require('merge2');
 var addsrc = require('gulp-add-src');
 var ts = require('gulp-typescript');
@@ -29,7 +30,7 @@ var tsProject = ts.createProject({
 
 gulp.task('default', ['build:clean']);
 
-gulp.task('build', ['compile', 'test']);
+gulp.task('build', ['compile', 'copy-to-lib', 'test']);
 gulp.task('build:clean', ['clean', 'compile', 'test']);
 
 gulp.task('watch', ['clean', 'build'], function () {
@@ -40,7 +41,7 @@ gulp.task('watch', ['clean', 'build'], function () {
 gulp.task('clean', function (cb) {
   del.sync([
     'coverage',
-    'transpiled/**/*.js'
+    'transpiled'
   ]);
   cb();
 });
@@ -48,7 +49,7 @@ gulp.task('clean', function (cb) {
 gulp.task('clean:all', function () {
   del([
     'coverage',
-    'transpiled/**/*.js',
+    'transpiled',
     'node_modules'
   ]);
 });
@@ -74,7 +75,7 @@ gulp.task('compile', function () {
         sourceRoot: '../src/'
       }))
       .pipe(gulp.dest('transpiled')),
-    tsResult.dts.pipe(gulp.dest('definitions'))
+    tsResult.dts.pipe(gulp.dest('transpiled'))
   ]);
 });
 
@@ -84,7 +85,13 @@ gulp.task('lint', function () {
     .pipe(tslint({
       configuration: 'tools/tslint/tslint-node.json'
     }))
-    .pipe(tslint.report('full'))
+    .pipe(tslint.report('full'));
+});
+
+gulp.task('copy-to-lib', function () {
+  return gulp.src('transpiled/AmqpSimple.js')
+  .pipe(rename('amqp-ts.js'))
+  .pipe(gulp.dest('lib'));
 });
 
 

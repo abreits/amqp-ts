@@ -1,14 +1,19 @@
 {
   "name": "amqp-ts",
-  "main": "transpiled/AmqpSimple.js",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "description": "Easy to use AMQP library written in Typescript (using amqplib).",
-    "repository": {
+  "repository": {
     "type": "git",
     "url": "git+https://github.com/abreits/amqp-ts"
   },
+  "keywords": [
+    "amqp",
+    "typescript"
+  ],
+  "license": "MIT",
   "author": "Ab Reitsma",
-  "typings": "definitions/AmqpSimple.d.ts",
+  "main": "lib/amqp-ts.js",
+  "typings": "lib/amqp-ts.d.ts",
   "dependencies": {
     "amqplib": "^0.4.0",
     "bluebird": "^2.10.2",
@@ -19,6 +24,7 @@
     "del": "^1.1.1",
     "gulp": "^3.8.11",
     "gulp-add-src": "^0.2.0",
+    "gulp-rename": "^1.2.2",
     "gulp-sourcemaps": "^1.5.1",
     "gulp-spawn-mocha": "^2.0.1",
     "gulp-tslint": "^3.3.0",

@@ -5,7 +5,7 @@
 var winston = require("winston");
 var Chai = require("chai");
 var expect = Chai.expect;
-var AmqpSimple_1 = require("./AmqpSimple");
+var amqp_ts_1 = require("../lib/amqp-ts");
 /**
  * Until we get a good mock for amqplib we will test using a local rabbitmq instance
  */
@@ -30,7 +30,7 @@ describe("Test AmqpSimple module", function () {
     describe("AMQP Connection class initialization", function () {
         it("should create a RabbitMQ connection", function (done) {
             // test code
-            var connection = new AmqpSimple_1.AmqpSimple.Connection(ConnectionUrl);
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
             // check result
             connection.initialized.then(function () {
                 connection.close().then(function () {
@@ -51,7 +51,7 @@ describe("Test AmqpSimple module", function () {
          */
         it("should create a Queue and send and receive simple string messages", function (done) {
             // initialize
-            var connection = new AmqpSimple_1.AmqpSimple.Connection(ConnectionUrl);
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
             // test code
             var queue = connection.declareQueue("TestQueue");
             queue.startConsumer(function (message) {
@@ -66,7 +66,7 @@ describe("Test AmqpSimple module", function () {
         });
         it("should create a Queue and send and receive simple string objects", function (done) {
             // initialize
-            var connection = new AmqpSimple_1.AmqpSimple.Connection(ConnectionUrl);
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
             // test code
             var queue = connection.declareQueue("TestQueue");
             var testObj = {
@@ -84,7 +84,7 @@ describe("Test AmqpSimple module", function () {
         });
         it("should create an Exchange, Queue and binding and send and receive simple string messages", function (done) {
             // initialize
-            var connection = new AmqpSimple_1.AmqpSimple.Connection(ConnectionUrl);
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
             // test code
             var exchange = connection.declareExchange("TestExchange");
             var queue = connection.declareQueue("TestQueue");
@@ -101,7 +101,7 @@ describe("Test AmqpSimple module", function () {
         });
         it("should create an Exchange, Queue and binding and send and receive objects", function (done) {
             // initialize
-            var connection = new AmqpSimple_1.AmqpSimple.Connection(ConnectionUrl);
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
             // test code
             var exchange = connection.declareExchange("TestExchange");
             var queue = connection.declareQueue("TestQueue");
@@ -121,7 +121,7 @@ describe("Test AmqpSimple module", function () {
         });
         it("should create an Exchange and send and receive simple string messages", function (done) {
             // initialize
-            var connection = new AmqpSimple_1.AmqpSimple.Connection(ConnectionUrl);
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
             // test code
             var exchange = connection.declareExchange("TestExchange");
             exchange.startConsumer(function (message) {
@@ -136,7 +136,7 @@ describe("Test AmqpSimple module", function () {
         });
         it("should bind Exchanges", function (done) {
             // initialize
-            var connection = new AmqpSimple_1.AmqpSimple.Connection(ConnectionUrl);
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
             // test code
             var exchange1 = connection.declareExchange("TestExchange1");
             var exchange2 = connection.declareExchange("TestExchange2");
@@ -155,7 +155,7 @@ describe("Test AmqpSimple module", function () {
         });
         it("should reconnect after broken connection", function (done) {
             // initialize
-            var connection = new AmqpSimple_1.AmqpSimple.Connection(ConnectionUrl);
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
             // test code
             var exchange = connection.declareExchange("TestExchange");
             var queue = connection.declareQueue("TestQueue");

@@ -21,9 +21,11 @@ var ApplicationName = process.env.AMQPSIMPLE_APPLICATIONNAME || path.parse(proce
 export namespace AmqpSimple {
   "use strict";
 
-  export interface ReconnectStrategy {
-      retries: number; // number of retries, 0 is forever
-      interval: number; // retry interval in ms
+  export namespace Connection {
+    export interface ReconnectStrategy {
+        retries: number; // number of retries, 0 is forever
+        interval: number; // retry interval in ms
+    }
   }
 
   export class Connection {
@@ -31,7 +33,7 @@ export namespace AmqpSimple {
 
     private url: string;
     private socketOptions: any;
-    private reconnectStrategy: ReconnectStrategy;
+    private reconnectStrategy: Connection.ReconnectStrategy;
 
     _connection: Amqp.Connection;
 
@@ -39,7 +41,7 @@ export namespace AmqpSimple {
     _queues: {[id: string] : Queue};
     _bindings: {[id: string] : Binding};
 
-    constructor (url?: string, socketOptions?: any, reconnectStrategy?: ReconnectStrategy) {
+    constructor (url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy) {
       this._exchanges = {};
       this._queues = {};
       this._bindings = {};
@@ -193,11 +195,11 @@ export namespace AmqpSimple {
       return Promise.all(promises);
     }
 
-    declareExchange(name: string, type?: string, options?: Amqp.Options.AssertExchange): Exchange {
+    declareExchange(name: string, type?: string, options?: Exchange.DeclarationOptions): Exchange {
       return new Exchange(this, name, type, options);
     }
 
-    declareQueue(name: string, options?: Amqp.Options.AssertQueue): Queue {
+    declareQueue(name: string, options?: Queue.DeclarationOptions): Queue {
       return new Queue(this, name, options);
     }
   }
@@ -205,6 +207,15 @@ export namespace AmqpSimple {
 //----------------------------------------------------------------------------------------------------
 // Exchange class
 //----------------------------------------------------------------------------------------------------
+  export namespace Exchange {
+    export interface DeclarationOptions {
+            durable?: boolean;
+            internal?: boolean;
+            autoDelete?: boolean;
+            alternateExchange?: string;
+            arguments?: any;
+    }
+  }
   export class Exchange {
     initialized: Promise<Exchange>;
 
@@ -214,7 +225,7 @@ export namespace AmqpSimple {
     _type: string;
     _options: Amqp.Options.AssertExchange;
 
-    constructor (connection: Connection, name: string, type?: string, options?: Amqp.Options.AssertExchange) {
+    constructor (connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions) {
       this._connection = connection;
       this._name = name;
       this._type = type;
@@ -227,7 +238,7 @@ export namespace AmqpSimple {
               reject(err);
             } else {
               this._channel = channel;
-              this._channel.assertExchange(name, type, options, (err, ok) => {
+              this._channel.assertExchange(name, type, <Amqp.Options.AssertExchange>options, (err, ok) => {
                 if (err) {
                   console.log("Failed to create exchange " + this._name);
                   delete this._connection._exchanges[this._name];
@@ -299,7 +310,7 @@ export namespace AmqpSimple {
       return this._name + "." + ApplicationName + "." + os.hostname() + "." + process.pid;
     }
 
-    startConsumer(onMessage: (msg: any) => void, options?: Amqp.Options.Consume): Promise<any> {
+    startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<any> {
       var queueName = this.consumerQueueName();
       if (this._connection._queues[queueName]) {
         return new Promise<void>((_, reject) => {
@@ -339,20 +350,46 @@ export namespace AmqpSimple {
 //----------------------------------------------------------------------------------------------------
 // Queue class
 //----------------------------------------------------------------------------------------------------
+  export namespace Queue {
+    export interface DeclarationOptions {
+      exclusive?: boolean;
+      durable?: boolean;
+      autoDelete?: boolean;
+      arguments?: any;
+      messageTtl?: number;
+      expires?: number;
+      deadLetterExchange?: string;
+      maxLength?: number;
+    }
+    export interface StartConsumerOptions {
+      consumerTag?: string;
+      noLocal?: boolean;
+      noAck?: boolean;
+      exclusive?: boolean;
+      priority?: number;
+      arguments?: Object;
+    }
+    export interface StartConsumerResult {
+      consumerTag: string;
+    }
+    export interface DeleteResult {
+      messageCount: number;
+    }
+  }
   export class Queue {
     initialized: Promise<Queue>;
 
     _connection: Connection;
     _channel: Amqp.Channel;
     _name: string;
-    _options: Amqp.Options.AssertQueue;
+    _options: Queue.DeclarationOptions;
 
     _consumer: (msg: any) => void;
-    _consumerOptions: Amqp.Options.Consume;
+    _consumerOptions: Queue.StartConsumerOptions;
     _consumerTag: string;
-    _consumerInitialized: Promise<Amqp.Replies.Consume>;
+    _consumerInitialized: Promise<Queue.StartConsumerResult>;
 
-    constructor (connection: Connection, name: string, options?: Amqp.Options.AssertQueue) {
+    constructor (connection: Connection, name: string, options?: Queue.DeclarationOptions) {
       this._connection = connection;
       this._name = name;
       this._options = options;
@@ -363,7 +400,7 @@ export namespace AmqpSimple {
               reject(err);
             } else {
               this._channel = channel;
-              this._channel.assertQueue(name, options, (err, ok) => {
+              this._channel.assertQueue(name, <Amqp.Options.AssertQueue>options, (err, ok) => {
                 if (err) {
                   winston.log("error", "Failed to create queue " + this._name);
                   delete this._connection._queues[this._name];
@@ -380,14 +417,8 @@ export namespace AmqpSimple {
     }
 
     publish(content: any, options?: any) {
-      if (typeof content === "string") {
-        content = new Buffer(content);
-      } else if (!(content instanceof Buffer)) {
-        content = new Buffer(JSON.stringify(content));
-        options = options || {};
-        options.contentType = "application/json";
-      }
-      this.initialized.then(() => {
+      // inline function to send the message
+      var sendMessage = () => {
         try {
           this._channel.sendToQueue(this._name, content, options);
         } catch (err) {
@@ -400,28 +431,47 @@ export namespace AmqpSimple {
             connection._queues[queueName].publish(content, options);
           });
         }
-      });
+      };
+
+      if (typeof content === "string") {
+        content = new Buffer(content);
+      } else if (!(content instanceof Buffer)) {
+        content = new Buffer(JSON.stringify(content));
+        options = options || {};
+        options.contentType = "application/json";
+      }
+      // execute sync when possible
+      if (this.initialized.isFulfilled()) {
+        sendMessage();
+      } else {
+        this.initialized.then(sendMessage);
+      }
     }
 
-    startConsumer(onMessage: (msg: any) => void, options?: Amqp.Options.Consume): Promise<Amqp.Replies.Consume> {
+    startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult> {
       if (this._consumerInitialized) {
-        return new Promise<Amqp.Replies.Consume>((_, reject) => {
+        return new Promise<Queue.StartConsumerResult>((_, reject) => {
           reject(new Error("AMQP Queue.startConsumer error: consumer already defined"));
         });
       }
+
+      var consumerFunction = (msg: Amqp.Message) => {
+        if (!msg) {
+          return; // ignore empty messages (for now)
+        }
+        var payload = msg.content.toString();
+        if (msg.properties.contentType === "application/json") {
+          payload = JSON.parse(payload);
+        }
+        onMessage(payload);
+        this._channel.ack(msg);
+      };
+
       this._consumerOptions = options;
       this._consumer = onMessage;
-      this._consumerInitialized = new Promise<Amqp.Replies.Consume>((resolve, reject) => {
+      this._consumerInitialized = new Promise<Queue.StartConsumerResult>((resolve, reject) => {
         this.initialized.then(() => {
-          this._channel.consume(this._name, (msg: Amqp.Message) => {
-            if (!msg) {return; } // ignore empty messages (for now)
-            var payload = msg.content.toString();
-            if (msg.properties.contentType === "application/json") {
-              payload = JSON.parse(payload);
-            }
-            onMessage(payload);
-            this._channel.ack(msg);
-          }, options, (err, ok) => {
+          this._channel.consume(this._name, consumerFunction, <Amqp.Options.Consume>options, (err, ok) => {
             if (err) {
               reject(err);
             } else {
@@ -453,9 +503,9 @@ export namespace AmqpSimple {
       });
     }
 
-    /**
-     * must acknowledge message receipt
-     */
+    // /**
+    //  * must acknowledge message receipt
+    //  */
     // consumeRaw(onMessage: (msg: Amqp.Message) => any, options?: Amqp.Options.Consume): Promise<Amqp.Replies.Consume> {
     //   if (this._consumerInitialized) {
     //     return new Promise<Amqp.Replies.Consume>((resolve, reject) => {
@@ -479,8 +529,8 @@ export namespace AmqpSimple {
     //   return this._consumerInitialized;
     // }
 
-    delete(): Promise<Amqp.Replies.DeleteQueue> {
-      return new Promise<Amqp.Replies.DeleteQueue>((resolve, reject) => {
+    delete(): Promise<Queue.DeleteResult> {
+      return new Promise<Queue.DeleteResult>((resolve, reject) => {
         this.initialized.then(() => {
           this._channel.deleteQueue(this._name, {}, (err, ok) => {
             if (err) {
@@ -491,7 +541,7 @@ export namespace AmqpSimple {
               delete this._channel;
               delete this._connection._queues[this._name]; // remove the queue from our administration
               delete this._connection;
-              resolve(ok);
+              resolve(<Queue.DeleteResult>ok);
             }
           });
         });
@@ -507,6 +557,10 @@ export namespace AmqpSimple {
       return this._connection._bindings[Binding.id(this, source)].delete();
     }
   }
+
+//----------------------------------------------------------------------------------------------------
+// Binding class
+//----------------------------------------------------------------------------------------------------
 
   export class Binding {
     initialized: Promise<Binding>;
