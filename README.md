@@ -73,14 +73,17 @@ TODO: describe winston configuration
 Building the library    <a name="build"></a>
 --------------------
 
-If you want to build the library from the typescript source yourself, you need to instaal the following global npm modules:
+If you want to build the library from the typescript source yourself, you need to install the following global npm modules:
 - gulp
 - tsd
 
-before you can start you need to excecute the following commands:
+    [sudo] npm install -g gulp tsd
+
+before you can start you need to install dependencies and type definitions using the following commands:
 
     npm install
     tsd install
+
 You can build and test the library using gulp:
 
     gulp
