@@ -88,14 +88,14 @@ gulp.task('lint', function () {
     .pipe(tslint.report('full'));
 });
 
-gulp.task('copy-to-lib', function () {
+gulp.task('copy-to-lib', ['compile'], function () {
   return gulp.src('transpiled/AmqpSimple.js')
   .pipe(rename('amqp-ts.js'))
   .pipe(gulp.dest('lib'));
 });
 
 
-gulp.task('test', ['compile'], function () {
+gulp.task('test', ['copy-to-lib'], function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
   })
@@ -106,7 +106,7 @@ gulp.task('test', ['compile'], function () {
     .on('error', swallowError);
 });
 
-gulp.task('test:integration', ['compile'], function () {
+gulp.task('test:integration', ['copy-to-lib'], function () {
   return gulp.src('transpiled/**/*.spec-i.js', {
     read: false
   })
@@ -116,7 +116,7 @@ gulp.task('test:integration', ['compile'], function () {
     .on('error', swallowError);
 });
 
-gulp.task('test:coverage', ['compile'], function () {
+gulp.task('test:coverage', ['copy-to-lib'], function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
   })

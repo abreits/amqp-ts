@@ -33,6 +33,7 @@ var AmqpSimple;
             }
             this.initialized = new Promise(function (resolve, reject) {
                 _this.tryToConnect(0, function (err) {
+                    /* istanbul ignore if */
                     if (err) {
                         reject(err);
                     }
@@ -41,6 +42,7 @@ var AmqpSimple;
                     }
                 });
             });
+            /* istanbul ignore next */
             this.initialized.catch(function (err) {
                 winston.log("warn", "Error creating connection!");
             });
@@ -49,6 +51,7 @@ var AmqpSimple;
         Connection.prototype.tryToConnect = function (retry, callback) {
             var _this = this;
             Amqp.connect(this.url, this.socketOptions, function (err, connection) {
+                /* istanbul ignore if */
                 if (err) {
                     winston.log("warn", "AMQP connection failed");
                     if (_this.reconnectStrategy && (_this.reconnectStrategy.retries === 0 || _this.reconnectStrategy.retries > retry)) {
@@ -61,7 +64,10 @@ var AmqpSimple;
                 else {
                     winston.log("debug", "AMQP connection succeeded");
                     process.once("SIGINT", connection.close); //close the connection when the program is interrupted
-                    //connection.on("error", this.rebuildAll); //try to rebuild the topology when the connection  unexpectedly closes
+                    /* istanbul ignore next */
+                    connection.on("error", function (err) {
+                        _this._rebuildAll(err); //try to rebuild the topology when the connection  unexpectedly closes
+                    });
                     _this._connection = connection;
                     callback(null);
                 }
@@ -101,7 +107,7 @@ var AmqpSimple;
                     _this.completeConfiguration().then(function () {
                         winston.log("debug", "Rebuild success");
                         resolve(null);
-                    }, function (rejectReason) {
+                    }, /* istanbul ignore next */ function (rejectReason) {
                         winston.log("debug", "Rebuild failed");
                         reject(rejectReason);
                     });
@@ -113,10 +119,12 @@ var AmqpSimple;
             return new Promise(function (resolve, reject) {
                 _this.initialized.then(function () {
                     _this._connection.close(function (err) {
+                        /* istanbul ignore if */
                         if (err) {
                             reject(err);
                         }
                         else {
+                            process.removeListener("SIGINT", _this._connection.close);
                             resolve(null);
                         }
                     });
@@ -188,12 +196,14 @@ var AmqpSimple;
             this.initialized = new Promise(function (resolve, reject) {
                 _this._connection.initialized.then(function () {
                     _this._connection._connection.createChannel(function (err, channel) {
+                        /* istanbul ignore if */
                         if (err) {
                             reject(err);
                         }
                         else {
                             _this._channel = channel;
                             _this._channel.assertExchange(name, type, options, function (err, ok) {
+                                /* istanbul ignore if */
                                 if (err) {
                                     console.log("Failed to create exchange " + _this._name);
                                     delete _this._connection._exchanges[_this._name];
@@ -239,12 +249,14 @@ var AmqpSimple;
             var _this = this;
             return new Promise(function (resolve, reject) {
                 _this.initialized.then(function () {
+                    return Binding.removeBindingsContaining(_this);
+                }).then(function () {
                     _this._channel.deleteExchange(_this._name, {}, function (err, ok) {
+                        /* istanbul ignore if */
                         if (err) {
                             reject(err);
                         }
                         else {
-                            //todo: remove all bindings to this exchange
                             delete _this.initialized; // invalidate exchange
                             delete _this._channel;
                             delete _this._connection._exchanges[_this._name]; // remove the exchange from our administration
@@ -311,12 +323,14 @@ var AmqpSimple;
             this.initialized = new Promise(function (resolve, reject) {
                 _this._connection.initialized.then(function () {
                     _this._connection._connection.createChannel(function (err, channel) {
+                        /* istanbul ignore if */
                         if (err) {
                             reject(err);
                         }
                         else {
                             _this._channel = channel;
                             _this._channel.assertQueue(name, options, function (err, ok) {
+                                /* istanbul ignore if */
                                 if (err) {
                                     winston.log("error", "Failed to create queue " + _this._name);
                                     delete _this._connection._queues[_this._name];
@@ -389,6 +403,7 @@ var AmqpSimple;
             this._consumerInitialized = new Promise(function (resolve, reject) {
                 _this.initialized.then(function () {
                     _this._channel.consume(_this._name, consumerFunction, options, function (err, ok) {
+                        /* istanbul ignore if */
                         if (err) {
                             reject(err);
                         }
@@ -405,57 +420,38 @@ var AmqpSimple;
             var _this = this;
             if (!this._consumerInitialized) {
                 return new Promise(function (resolve, reject) {
-                    reject(new Error("AMQP Queue.cancel error: no consumer defined"));
+                    reject(new Error("AMQP Queue.cancelConsumer error: no consumer defined"));
                 });
             }
             return new Promise(function (resolve, reject) {
                 _this._consumerInitialized.then(function () {
                     _this._channel.cancel(_this._consumerTag, function (err, ok) {
+                        /* istanbul ignore if */
                         if (err) {
                             reject(err);
                         }
                         else {
+                            delete _this._consumerInitialized;
+                            delete _this._consumer;
+                            delete _this._consumerOptions;
                             resolve(null);
                         }
                     });
                 });
             });
         };
-        // /**
-        //  * must acknowledge message receipt
-        //  */
-        // consumeRaw(onMessage: (msg: Amqp.Message) => any, options?: Amqp.Options.Consume): Promise<Amqp.Replies.Consume> {
-        //   if (this._consumerInitialized) {
-        //     return new Promise<Amqp.Replies.Consume>((resolve, reject) => {
-        //       reject(new Error("AMQP Queue.consume error: consumer already defined"));
-        //     });
-        //   }
-        //   this._consumerOptions = options;
-        //   this._consumer = onMessage;
-        //   this._consumerInitialized = new Promise<Amqp.Replies.Consume>((resolve, reject) => {
-        //     this.initialized.then(() => {
-        //       this._channel.consume(this._name, onMessage, options, (err, ok) => {
-        //         if (err) {
-        //           reject(err);
-        //         } else {
-        //           this._consumerTag = ok.consumerTag;
-        //           resolve(ok);
-        //         }
-        //       });
-        //     });
-        //   });
-        //   return this._consumerInitialized;
-        // }
         Queue.prototype.delete = function () {
             var _this = this;
             return new Promise(function (resolve, reject) {
                 _this.initialized.then(function () {
+                    return Binding.removeBindingsContaining(_this);
+                }).then(function () {
                     _this._channel.deleteQueue(_this._name, {}, function (err, ok) {
+                        /* istanbul ignore if */
                         if (err) {
                             reject(err);
                         }
                         else {
-                            //todo: remove all bindings to this queue
                             delete _this.initialized; // invalidate queue
                             delete _this._channel;
                             delete _this._connection._queues[_this._name]; // remove the queue from our administration
@@ -495,6 +491,7 @@ var AmqpSimple;
                     var queue = _this._destination;
                     queue.initialized.then(function () {
                         queue._channel.bindQueue(_this._destination._name, source._name, pattern, args, function (err, ok) {
+                            /* istanbul ignore if */
                             if (err) {
                                 console.log("Failed to create binding");
                                 delete _this._destination._connection._bindings[Binding.id(_this._destination, _this._source)];
@@ -511,6 +508,7 @@ var AmqpSimple;
                     var exchange = _this._destination;
                     exchange.initialized.then(function () {
                         exchange._channel.bindExchange(_this._destination._name, source._name, pattern, args, function (err, ok) {
+                            /* istanbul ignore if */
                             if (err) {
                                 delete _this._destination._connection._bindings[Binding.id(_this._destination, _this._source)];
                                 reject(err);
@@ -531,6 +529,7 @@ var AmqpSimple;
                     var queue = _this._destination;
                     queue.initialized.then(function () {
                         queue._channel.unbindQueue(_this._destination._name, _this._source._name, _this._pattern, _this._args, function (err, ok) {
+                            /* istanbul ignore if */
                             if (err) {
                                 reject(err);
                             }
@@ -545,6 +544,7 @@ var AmqpSimple;
                     var exchange = _this._destination;
                     exchange.initialized.then(function () {
                         exchange._channel.unbindExchange(_this._destination._name, _this._source._name, _this._pattern, _this._args, function (err, ok) {
+                            /* istanbul ignore if */
                             if (err) {
                                 reject(err);
                             }
@@ -560,6 +560,17 @@ var AmqpSimple;
         };
         Binding.id = function (destination, source) {
             return "[" + source._name + "]to" + (destination instanceof Queue ? "Queue" : "Exchange") + "[" + destination._name + "]";
+        };
+        Binding.removeBindingsContaining = function (connectionPoint) {
+            var connection = connectionPoint._connection;
+            var promises = [];
+            for (var bindingId in connection._bindings) {
+                var binding = connection._bindings[bindingId];
+                if (binding._source === connectionPoint || binding._destination === connectionPoint) {
+                    promises.push(binding.delete());
+                }
+            }
+            return Promise.all(promises);
         };
         return Binding;
     })();

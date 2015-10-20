@@ -15,6 +15,7 @@ var UnitTestTimeout = process.env.AMQPTEST_TIMEOUT || 1000;
 var LogLevel = process.env.AMQPTEST_LOGLEVEL || "warn";
 // set logging level
 winston.level = LogLevel;
+/* istanbul ignore next */
 describe("Test AmqpSimple module", function () {
     this.timeout(UnitTestTimeout); // define default timeout
     // cleanup function for the AMQP connection, also tests the Connection.deleteConfiguration method
@@ -153,13 +154,15 @@ describe("Test AmqpSimple module", function () {
                 done(err);
             });
         });
-        it("should reconnect after broken connection", function (done) {
+        it("should reconnect when sending a message to an Exchange after a broken connection", function (done) {
             // initialize
             var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
             // test code
-            var exchange = connection.declareExchange("TestExchange");
+            var exchange1 = connection.declareExchange("TestExchange1");
+            var exchange2 = connection.declareExchange("TestExchange1");
+            exchange2.bind(exchange1);
             var queue = connection.declareQueue("TestQueue");
-            queue.bind(exchange);
+            queue.bind(exchange2);
             queue.startConsumer(function (message) {
                 expect(message).equals("Test");
                 cleanup(connection, done);
@@ -175,11 +178,173 @@ describe("Test AmqpSimple module", function () {
                     }
                     else {
                         // it should auto reconnect and send the message
-                        exchange.publish("Test");
+                        exchange1.publish("Test");
                     }
                 });
             }, function (err) {
                 done(err);
+            });
+        });
+        it("should reconnect when sending a message to a Queue after a broken connection", function (done) {
+            // initialize
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
+            // test code
+            // var exchange1 = connection.declareExchange("TestExchange1");
+            // var exchange2 = connection.declareExchange("TestExchange1");
+            // exchange2.bind(exchange1);
+            var queue = connection.declareQueue("TestQueue");
+            //queue.bind(exchange1);
+            queue.startConsumer(function (message) {
+                expect(message).equals("Test");
+                cleanup(connection, done);
+            }).catch(function (err) {
+                console.log("Consumer intialization FAILED!!!");
+                done(err);
+            });
+            connection.completeConfiguration().then(function () {
+                // break connection
+                connection._connection.close(function (err) {
+                    if (err) {
+                        done(err);
+                    }
+                    else {
+                        // it should auto reconnect and send the message
+                        queue.publish("Test");
+                    }
+                });
+            }, function (err) {
+                done(err);
+            });
+        });
+        it("should unbind Exchanges and Queues", function (done) {
+            // initialize
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
+            // test code
+            var exchange1 = connection.declareExchange("TestExchange1");
+            var exchange2 = connection.declareExchange("TestExchange2");
+            var queue = connection.declareQueue("TestQueue");
+            exchange2.bind(exchange1);
+            queue.bind(exchange2);
+            queue.startConsumer(function (message) {
+                expect(message).eql("Test");
+                exchange2.unbind(exchange1).then(function () {
+                    return queue.unbind(exchange2);
+                }).then(function () {
+                    cleanup(connection, done);
+                });
+            });
+            connection.completeConfiguration().then(function () {
+                exchange1.publish("Test");
+            }, function (err) {
+                done(err);
+            });
+        });
+        it("should delete Exchanges and Queues", function (done) {
+            // initialize
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
+            // test code
+            var exchange1 = connection.declareExchange("TestExchange1");
+            var exchange2 = connection.declareExchange("TestExchange2");
+            var queue = connection.declareQueue("TestQueue");
+            exchange2.bind(exchange1);
+            queue.bind(exchange2);
+            queue.startConsumer(function (message) {
+                expect(message).eql("Test");
+                exchange2.delete().then(function () {
+                    return queue.delete();
+                }).then(function () {
+                    cleanup(connection, done);
+                });
+            });
+            connection.completeConfiguration().then(function () {
+                exchange1.publish("Test");
+            }, function (err) {
+                done(err);
+            });
+        });
+        it("should not start 2 consumers for the same queue", function (done) {
+            // initialize
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
+            // test code
+            var exchange1 = connection.declareExchange("TestExchange1");
+            var queue = connection.declareQueue("TestQueue");
+            queue.bind(exchange1);
+            queue.startConsumer(function (message) {
+                done(new Error("Received unexpected message"));
+            });
+            queue.startConsumer(function (message) {
+                done(new Error("Received unexpected message"));
+            }).catch(function (err) {
+                expect(err.message).equal("AMQP Queue.startConsumer error: consumer already defined");
+                cleanup(connection, done);
+            });
+        });
+        it("should not start 2 consumers for the same exchange", function (done) {
+            // initialize
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
+            // test code
+            var exchange1 = connection.declareExchange("TestExchange1");
+            exchange1.startConsumer(function (message) {
+                done(new Error("Received unexpected message"));
+            });
+            exchange1.startConsumer(function (message) {
+                done(new Error("Received unexpected message"));
+            }).catch(function (err) {
+                expect(err.message).equal("AMQP Exchange.startConsumer error: consumer already defined");
+                cleanup(connection, done);
+            });
+        });
+        it("should stop an Exchange consumer", function (done) {
+            // initialize
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
+            // test code
+            var exchange1 = connection.declareExchange("TestExchange1");
+            exchange1.startConsumer(function (message) {
+                done(new Error("Received unexpected message"));
+            });
+            exchange1.stopConsumer().then(function () {
+                cleanup(connection, done);
+            });
+        });
+        it("should generate an error when stopping a non existing Exchange consumer", function (done) {
+            // initialize
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
+            // test code
+            var exchange1 = connection.declareExchange("TestExchange1");
+            exchange1.startConsumer(function (message) {
+                done(new Error("Received unexpected message"));
+            });
+            exchange1.stopConsumer().then(function () {
+                return exchange1.stopConsumer();
+            }).catch(function (err) {
+                expect(err.message).equals("AMQP Exchange.cancelConsumer error: no consumer defined");
+                cleanup(connection, done);
+            });
+        });
+        it("should generate an error when stopping a non existing Queue consumer", function (done) {
+            // initialize
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
+            // test code
+            var queue = connection.declareQueue("TestQueue");
+            queue.startConsumer(function (message) {
+                done(new Error("Received unexpected message"));
+            });
+            queue.stopConsumer().then(function () {
+                return queue.stopConsumer();
+            }).catch(function (err) {
+                expect(err.message).equals("AMQP Queue.cancelConsumer error: no consumer defined");
+                cleanup(connection, done);
+            });
+        });
+        it("should send a message to a queue before the queue is explicitely initialized", function (done) {
+            // initialize
+            var connection = new amqp_ts_1.AmqpSimple.Connection(ConnectionUrl);
+            // test code
+            var queue = connection.declareQueue("TestQueue");
+            queue.publish("Test");
+            queue.startConsumer(function (message) {
+                expect(message).equals("Test");
+                cleanup(connection, done);
             });
         });
     });

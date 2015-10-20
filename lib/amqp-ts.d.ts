@@ -45,7 +45,7 @@ export declare namespace AmqpSimple {
         publish(content: any, routingKey?: string, options?: any): void;
         delete(): Promise<void>;
         bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-        unbind(source: Exchange, pattern: string, args?: any): Promise<void>;
+        unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
         consumerQueueName(): string;
         startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<any>;
         stopConsumer(): Promise<any>;
@@ -85,6 +85,6 @@ export declare namespace AmqpSimple {
         stopConsumer(): Promise<void>;
         delete(): Promise<Queue.DeleteResult>;
         bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-        unbind(source: Exchange, pattern: string, args?: any): Promise<void>;
+        unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
     }
 }

@@ -58,6 +58,7 @@ export namespace AmqpSimple {
       }
       this.initialized = new Promise<void>((resolve, reject) => {
         this.tryToConnect(0, (err) => {
+          /* istanbul ignore if */
           if (err) {
             reject(err);
           } else {
@@ -65,6 +66,7 @@ export namespace AmqpSimple {
           }
         });
       });
+      /* istanbul ignore next */
       this.initialized.catch((err) => {
         winston.log("warn", "Error creating connection!");
       });
@@ -73,6 +75,7 @@ export namespace AmqpSimple {
 
     private tryToConnect(retry: number, callback: (err: any) => void) {
       Amqp.connect(this.url, this.socketOptions, (err, connection) => {
+        /* istanbul ignore if */
         if (err) {
           winston.log("warn" , "AMQP connection failed");
           if (this.reconnectStrategy && (this.reconnectStrategy.retries === 0 || this.reconnectStrategy.retries > retry)) {
@@ -83,7 +86,10 @@ export namespace AmqpSimple {
         } else {
           winston.log("debug", "AMQP connection succeeded");
           process.once("SIGINT", connection.close); //close the connection when the program is interrupted
-          //connection.on("error", this.rebuildAll); //try to rebuild the topology when the connection  unexpectedly closes
+          /* istanbul ignore next */
+          connection.on("error", (err) => {
+            this._rebuildAll(err); //try to rebuild the topology when the connection  unexpectedly closes
+          });
           this._connection = connection;
 
           callback(null);
@@ -125,7 +131,8 @@ export namespace AmqpSimple {
           this.completeConfiguration().then(() => {
             winston.log("debug", "Rebuild success");
             resolve(null);
-          }, (rejectReason) => {
+          }, /* istanbul ignore next */
+          (rejectReason) => {
             winston.log("debug", "Rebuild failed");
             reject(rejectReason);
           });
@@ -137,9 +144,11 @@ export namespace AmqpSimple {
       return new Promise<void>((resolve, reject) => {
           this.initialized.then(() => {
             this._connection.close(err => {
+              /* istanbul ignore if */
               if (err) {
                 reject(err);
               } else {
+                process.removeListener("SIGINT", this._connection.close);
                 resolve(null);
               }
           });
@@ -234,11 +243,13 @@ export namespace AmqpSimple {
       this.initialized = new Promise<Exchange>((resolve, reject) => {
         this._connection.initialized.then(() => {
           this._connection._connection.createChannel((err, channel) => {
+            /* istanbul ignore if */
             if (err) {
               reject(err);
             } else {
               this._channel = channel;
               this._channel.assertExchange(name, type, <Amqp.Options.AssertExchange>options, (err, ok) => {
+                /* istanbul ignore if */
                 if (err) {
                   console.log("Failed to create exchange " + this._name);
                   delete this._connection._exchanges[this._name];
@@ -281,11 +292,13 @@ export namespace AmqpSimple {
     delete(): Promise<void> {
       return new Promise<void>((resolve, reject) => {
         this.initialized.then(() => {
+          return Binding.removeBindingsContaining(this);
+        }).then(() => {
           this._channel.deleteExchange(this._name, {}, (err, ok) => {
+            /* istanbul ignore if */
             if (err) {
               reject(err);
             } else {
-              //todo: remove all bindings to this exchange
               delete this.initialized; // invalidate exchange
               delete this._channel;
               delete this._connection._exchanges[this._name]; // remove the exchange from our administration
@@ -302,7 +315,7 @@ export namespace AmqpSimple {
       return binding.initialized;
     }
 
-    unbind(source: Exchange, pattern: string, args?: any): Promise<void> {
+    unbind(source: Exchange, pattern?: string, args?: any): Promise<void> {
       return this._connection._bindings[Binding.id(this, source)].delete();
     }
 
@@ -396,11 +409,13 @@ export namespace AmqpSimple {
       this.initialized = new Promise<Queue>((resolve, reject) => {
         this._connection.initialized.then(() => {
           this._connection._connection.createChannel((err, channel) => {
+            /* istanbul ignore if */
             if (err) {
               reject(err);
             } else {
               this._channel = channel;
               this._channel.assertQueue(name, <Amqp.Options.AssertQueue>options, (err, ok) => {
+                /* istanbul ignore if */
                 if (err) {
                   winston.log("error", "Failed to create queue " + this._name);
                   delete this._connection._queues[this._name];
@@ -472,6 +487,7 @@ export namespace AmqpSimple {
       this._consumerInitialized = new Promise<Queue.StartConsumerResult>((resolve, reject) => {
         this.initialized.then(() => {
           this._channel.consume(this._name, consumerFunction, <Amqp.Options.Consume>options, (err, ok) => {
+            /* istanbul ignore if */
             if (err) {
               reject(err);
             } else {
@@ -487,15 +503,19 @@ export namespace AmqpSimple {
     stopConsumer(): Promise<void> {
       if (!this._consumerInitialized) {
         return new Promise<void>((resolve, reject) => {
-          reject(new Error("AMQP Queue.cancel error: no consumer defined"));
+          reject(new Error("AMQP Queue.cancelConsumer error: no consumer defined"));
         });
       }
       return new Promise<void>((resolve, reject) => {
         this._consumerInitialized.then(() => {
           this._channel.cancel(this._consumerTag, (err, ok) => {
+            /* istanbul ignore if */
             if (err) {
               reject(err);
             } else {
+              delete this._consumerInitialized;
+              delete this._consumer;
+              delete this._consumerOptions;
               resolve(null);
             }
           });
@@ -503,40 +523,16 @@ export namespace AmqpSimple {
       });
     }
 
-    // /**
-    //  * must acknowledge message receipt
-    //  */
-    // consumeRaw(onMessage: (msg: Amqp.Message) => any, options?: Amqp.Options.Consume): Promise<Amqp.Replies.Consume> {
-    //   if (this._consumerInitialized) {
-    //     return new Promise<Amqp.Replies.Consume>((resolve, reject) => {
-    //       reject(new Error("AMQP Queue.consume error: consumer already defined"));
-    //     });
-    //   }
-    //   this._consumerOptions = options;
-    //   this._consumer = onMessage;
-    //   this._consumerInitialized = new Promise<Amqp.Replies.Consume>((resolve, reject) => {
-    //     this.initialized.then(() => {
-    //       this._channel.consume(this._name, onMessage, options, (err, ok) => {
-    //         if (err) {
-    //           reject(err);
-    //         } else {
-    //           this._consumerTag = ok.consumerTag;
-    //           resolve(ok);
-    //         }
-    //       });
-    //     });
-    //   });
-    //   return this._consumerInitialized;
-    // }
-
     delete(): Promise<Queue.DeleteResult> {
       return new Promise<Queue.DeleteResult>((resolve, reject) => {
         this.initialized.then(() => {
+          return Binding.removeBindingsContaining(this);
+        }).then(() => {
           this._channel.deleteQueue(this._name, {}, (err, ok) => {
+            /* istanbul ignore if */
             if (err) {
               reject(err);
             } else {
-              //todo: remove all bindings to this queue
               delete this.initialized; // invalidate queue
               delete this._channel;
               delete this._connection._queues[this._name]; // remove the queue from our administration
@@ -553,7 +549,7 @@ export namespace AmqpSimple {
       return binding.initialized;
     }
 
-    unbind(source: Exchange, pattern: string, args?: any): Promise<void> {
+    unbind(source: Exchange, pattern?: string, args?: any): Promise<void> {
       return this._connection._bindings[Binding.id(this, source)].delete();
     }
   }
@@ -585,6 +581,7 @@ export namespace AmqpSimple {
           var queue = <Queue>this._destination;
           queue.initialized.then(() => {
             queue._channel.bindQueue(this._destination._name, source._name, pattern, args, (err, ok) => {
+              /* istanbul ignore if */
               if (err) {
                 console.log("Failed to create binding");
                 delete this._destination._connection._bindings[Binding.id(this._destination, this._source)];
@@ -599,6 +596,7 @@ export namespace AmqpSimple {
           var exchange = <Queue>this._destination;
           exchange.initialized.then(() => {
             exchange._channel.bindExchange(this._destination._name, source._name, pattern, args, (err, ok) => {
+              /* istanbul ignore if */
               if (err) {
                 delete this._destination._connection._bindings[Binding.id(this._destination, this._source)];
                 reject(err);
@@ -618,6 +616,7 @@ export namespace AmqpSimple {
           var queue = <Queue>this._destination;
           queue.initialized.then(() => {
             queue._channel.unbindQueue(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
+              /* istanbul ignore if */
               if (err) {
                 reject(err);
               } else {
@@ -630,6 +629,7 @@ export namespace AmqpSimple {
           var exchange = <Exchange>this._destination;
           exchange.initialized.then(() => {
             exchange._channel.unbindExchange(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
+              /* istanbul ignore if */
               if (err) {
                 reject(err);
               } else {
@@ -644,6 +644,19 @@ export namespace AmqpSimple {
 
     static id(destination: Exchange | Queue, source: Exchange): string {
       return "[" + source._name + "]to" + (destination instanceof Queue ? "Queue" : "Exchange") + "[" + destination._name + "]";
+    }
+
+    static removeBindingsContaining(connectionPoint: Exchange | Queue): Promise<any> {
+      var connection = connectionPoint._connection;
+      var promises = [];
+      for (var bindingId in connection._bindings) {
+
+        var binding: Binding = connection._bindings[bindingId];
+        if (binding._source === connectionPoint || binding._destination === connectionPoint) {
+          promises.push(binding.delete());
+        }
+      }
+      return Promise.all(promises);
     }
   }
 }
