@@ -5,6 +5,7 @@ AmqpSimple (amqp-ts)
 - [Lazy Initialization](#lazy)
 - [Automatic Reconnection](#reconnect)
 - [Logging](#logging)
+- [Building the library](#build)
 - [API reference](#api)
 
 
@@ -28,11 +29,10 @@ Lazy Initialization    <a name="lazy"></a>
 -------------------
 
 No need to nest functionality, just create a connection, declare your exchanges, queues and
-bindings and send and receive messages. The library takes care of dependencies in the
-background.
+bindings and send and receive messages. The library takes care of any direct dependencies.
 
 If you define an exchange and a queue and bind the queue to the exchange and want to make
-sure that the queue is connected to the exchange when you send a message to the exchange you can call the `connection.completeConfiguration()` method and act on the promise it returns.
+sure that the queue is connected to the exchange before you send a message to the exchange you can call the `connection.completeConfiguration()` method and act on the promise it returns.
 
 ### Typescript Example
 
@@ -69,6 +69,25 @@ Logging    <a name="logging"></a>
 
 TODO: describe winston configuration
 
+
+Building the library    <a name="build"></a>
+--------------------
+
+If you want to build the library from the typescript source yourself, you need to instaal the following global npm modules:
+- gulp
+- tsd
+
+before you can start you need to excecute the following commands:
+
+    npm install
+    tsd install
+You can build and test the library using gulp:
+
+    gulp
+    gulp test:coverage
+
+
+
 API Reference    <a name="api"></a>
 -------------
 
@@ -99,10 +118,6 @@ API Reference    <a name="api"></a>
   - [startConsumer](#queue_startConsumer)
   - [stopConsumer](#queue_stopConsumer)
   - [initialized](#queue_initialized)
-- [Binding](#binding)
-  - [constructor](#binding_constructor)
-  - [delete](#binding_delete)
-  - [initialized](#binding_initialized)
 
 
 
@@ -497,67 +512,6 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >         // stuff to do
 >     }
 >     queue.initialized.catch(() => {
->         // something went wrong
->     }
-[back to API reference](#api)
-
-
-
-
-
-### Binding class    <a name="binding"></a>
-
-The Binding class defines a unidirectional connection between a queue and an exchange or an exchange and another exchange
-Normally only created from within a queue or exchange connection with `bind()` and removed with `unbind()`.
-
-#### methods
-
-###### constructor (destination: Exchange | Queue, source: Exchange, pattern?: string, args?: any)    <a name="binding_constructor"></a>
-> Creates a uniderectional binding from an exchange to a queue or exchange. Normally only created from within a queue or exchange with `bind()`.
->
-> parameters
-> -   `destination: Exchange | Queue` : Destination for this binding
-> -   `source: Exchange` : Source exchange for this binding.
-> -   `pattern?: string` : pattern that defines which messages will be received, defaults to `""`.
-> -   `args?: any` : object containing extra arguments that may be required for the particular exchange type
->
-> example
->
->     // normally not used directly, but from a queue or exchange
->     queue.bind(exchange);
->     destExchange.bind(sourceExchange);
->     // but can also be called directly
->     var binding = new Binding(logQueue, exchange, "*.log");
-[back to API reference](#api)
-
-##### binding.delete(): Promise<void>    <a name="binding_delete"></a>
-> Removes the binding. Normally only called from within a queue or exchange with `unbind()`.
->
-> result
-> -   `Promise<void>` : promise that resolves when the binding is removed (or rejects when an error has occurred).
->
-> example
->
->     // normally not used directly, but from a queue or exchange
->     queue.unbind(exchange);
->     destExchange.unbind(sourceExchange);
->     // but can also be called directly
->     binding.delete().then(() => {
->         // do things when the binding is removed
->     });
-[back to API reference](#api)
-
-#### properties
-
-##### binding.initialized: Promise<void>;    <a name="binding_initialized"></a>
-> indicates whether the binding initialization is resolved (or rejected)
->
-> example
->
->     binding.initialized.then(() => {
->         // stuff to do
->     }
->     binding.initialized.catch(() => {
 >         // something went wrong
 >     }
 [back to API reference](#api)
