@@ -20,12 +20,12 @@ export declare namespace AmqpSimple {
          * Make sure the whole defined connection topology is configured:
          * return promise that fulfills after all defined exchanges, queues and bindings are initialized
          */
-        completeConfiguration(): Promise<any>;
+        completeConfiguration(): Promise<void>;
         /**
          * Delete the whole defined connection topology:
          * return promise that fulfills after all defined exchanges, queues and bindings have been removed
          */
-        deleteConfiguration(): Promise<any>;
+        deleteConfiguration(): Promise<void>;
         declareExchange(name: string, type?: string, options?: Exchange.DeclarationOptions): Exchange;
         declareQueue(name: string, options?: Queue.DeclarationOptions): Queue;
     }
@@ -47,8 +47,8 @@ export declare namespace AmqpSimple {
         bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
         unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
         consumerQueueName(): string;
-        startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<any>;
-        stopConsumer(): Promise<any>;
+        startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<void>;
+        stopConsumer(): Promise<void>;
     }
     namespace Queue {
         interface DeclarationOptions {
