@@ -32,30 +32,60 @@ function cleanup(connection, done) {
   });
 }
 
-// restart the amqp server
+// needed for server restart tests
+var os = require("os");
+var isWin = /^win/.test(os.platform());
+var path = require("path");
+var cp = require("child_process");
+
 /* istanbul ignore next */
 function restartAmqpServer() {
   "use strict";
-  var os = require("os");
-  var isWin = /^win/.test(os.platform());
-  var path = require("path");
-  var cp = require("child_process");
 
   // windows only code
-  console.log("restarting rabbitmq");
+  console.log("shutdown and restart rabbitmq");
   if (isWin) {
     try {
       cp.execSync("net stop rabbitmq");
       cp.exec("net start rabbitmq");
     } catch (err) {
-      winston.log("error", "Unable to restart RabbitMQ, possible solution: use elevated permissions (start an admin shell)");
+      winston.log("error", "Unable to shutdown and restart RabbitMQ, possible solution: use elevated permissions (start an admin shell)");
       throw (new Error("Unable to restart rabbitmq, error:\n" + err.message));
     }
   } else {
-    throw (new Error("AmqpServer restart not implemented on this platform"));
+    throw (new Error("AmqpServer shutdown and restart not implemented for this platform"));
   }
-
 }
+
+// killing works, restarting unfortunately not yet (the service will not start unless a reboot takes place)
+/* istanbul ignore next */
+// function killAndRestartAmqpServer() {
+//   "use strict";
+
+//   function getPid(serviceName): string {
+//     var result = cp.execSync("sc queryex " + serviceName).toString();
+//     console.log(result);
+//     var regex = /pid*\s*\s.*\s[0-9]+/gi;
+//     pid = result.match(regex)[0].match(/[0-9]+/);
+//     return pid[0];
+//   }
+
+//   // windows only code
+//   console.log("kill and restart rabbitmq");
+//   if (isWin) {
+//     try {
+//       var pid = getPid("rabbitmq");
+//       console.log("execute: taskkill /f /pid " + pid);
+//       console.log(cp.execSync("taskkill /f /pid " + pid).toString());
+//       cp.exec("net start rabbitmq");
+//     } catch (err) {
+//       winston.log("error", "Unable to kill and restart RabbitMQ, possible solution: use elevated permissions (start an admin shell)");
+//       throw (new Error("Unable to restart rabbitmq, error:\n" + err.message));
+//     }
+//   } else {
+//     throw (new Error("AmqpServer kill and restart not implemented for this platform"));
+//   }
+// }
 
 /* istanbul ignore next */
 describe("Test AmqpSimple module", function() {
@@ -439,8 +469,8 @@ describe("Test AmqpSimple module", function() {
 });
 
 describe("AMQP Connection class automatic reconnection", function() {
-  this.timeout(60000); // define long timeout for rabbitmq service restart (with possible human interaction required)
-  it("should reconnect a queue when detecting a broken connection", (done) => {
+  this.timeout(60000); // define long timeout for rabbitmq service restart
+  it("should reconnect a queue when detecting a broken connection because of a server restart", (done) => {
     // initialize
     var connection = new Amqp.Connection(ConnectionUrl);
 
@@ -460,7 +490,7 @@ describe("AMQP Connection class automatic reconnection", function() {
     });
   });
 
-    it("should reconnect and rebuild a complete configuration when detecting a broken connection", (done) => {
+  it("should reconnect and rebuild a complete configuration when detecting a broken connection because of a server restart", (done) => {
     // initialize
     var connection = new Amqp.Connection(ConnectionUrl);
 
@@ -483,4 +513,25 @@ describe("AMQP Connection class automatic reconnection", function() {
       done(err);
     });
   });
+
+  // // kill and restart server does not work for now
+  // it("should reconnect a queue when detecting a broken connection because of a server ungracefull shutdown and restart", (done) => {
+  //   // initialize
+  //   var connection = new Amqp.Connection(ConnectionUrl);
+
+  //   // test code
+  //   var queue = connection.declareQueue("TestQueue");
+  //   queue.startConsumer((message) => {
+  //     expect(message).equals("Test");
+  //     cleanup(connection, done);
+  //   }).then(() => {
+  //     killAndRestartAmqpServer();
+  //     setTimeout(() => {
+  //       queue.publish("Test");
+  //     }, 1000);
+  //   }).catch((err) => {
+  //     console.log("Consumer intialization FAILED!!!");
+  //     done(err);
+  //   });
+  // });
 });

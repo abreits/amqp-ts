@@ -1,18 +1,12 @@
 // Type definitions for amqplib 0.3.x
 // Project: https://github.com/squaremo/amqp.node
-// Definitions by: Ab Reitsma <https://github.com/abreits>, based on 'amqplib' definitions by Michael Nahkies <https://github.com/mnahkies>
+// Definitions by: Michael Nahkies <https://github.com/mnahkies>, Ab Reitsma <https://github.com/abreits>
 // Definitions: https://github.com/borisyankov/DefinitelyTyped
 
-declare module "amqplib/callback_api" {
+/// <reference path="../when/when.d.ts" />
+/// <reference path="../node/node.d.ts" />
 
-    import events = require("events");
-
-    interface Connection extends events.EventEmitter {
-        close(callback?: (err: any) => void): void;
-        createChannel(callback: (err: any, channel: Channel) => void): void;
-        createConfirmChannel(callback: (err: any, confirmChannel: ConfirmChannel) => void): void;
-    }
-
+declare module "amqplib/properties" {
     module Replies {
         interface Empty {
         }
@@ -21,10 +15,10 @@ declare module "amqplib/callback_api" {
             messageCount: number;
             consumerCount: number;
         }
-        interface DeleteQueue {
+        interface PurgeQueue {
             messageCount: number;
         }
-        interface PurgeQueue {
+        interface DeleteQueue {
             messageCount: number;
         }
         interface AssertExchange {
@@ -72,7 +66,7 @@ declare module "amqplib/callback_api" {
 
             contentType?: string;
             contentEncoding?: string;
-            headers?: Object;
+            headers?: any;
             priority?: number;
             correlationId?: string;
             replyTo?: string;
@@ -87,7 +81,7 @@ declare module "amqplib/callback_api" {
             noAck?: boolean;
             exclusive?: boolean;
             priority?: number;
-            arguments?: Object;
+            arguments?: any;
         }
         interface Get {
             noAck?: boolean;
@@ -98,6 +92,78 @@ declare module "amqplib/callback_api" {
         content: Buffer;
         fields: any;
         properties: any;
+    }
+}
+
+declare module "amqplib" {
+
+    import events = require("events");
+    import when = require("when");
+    import shared = require("amqplib/properties")
+    export import Replies = shared.Replies;
+    export import Options = shared.Options;
+    export import Message = shared.Message;
+
+    interface Connection extends events.EventEmitter {
+        close(): when.Promise<void>;
+        createChannel(): when.Promise<Channel>;
+        createConfirmChannel(): when.Promise<Channel>;
+    }
+
+    interface Channel extends events.EventEmitter {
+        close(): when.Promise<void>;
+
+        assertQueue(queue: string, options?: Options.AssertQueue): when.Promise<Replies.AssertQueue>;
+        checkQueue(queue: string): when.Promise<Replies.AssertQueue>;
+
+        deleteQueue(queue: string, options?: Options.DeleteQueue): when.Promise<Replies.DeleteQueue>;
+        purgeQueue(queue: string): when.Promise<Replies.PurgeQueue>;
+
+        bindQueue(queue: string, source: string, pattern: string, args?: any): when.Promise<Replies.Empty>;
+        unbindQueue(queue: string, source: string, pattern: string, args?: any): when.Promise<Replies.Empty>;
+
+        assertExchange(exchange: string, type: string, options?: Options.AssertExchange): when.Promise<Replies.AssertExchange>;
+        checkExchange(exchange: string): when.Promise<Replies.Empty>;
+
+        deleteExchange(exchange: string, options?: Options.DeleteExchange): when.Promise<Replies.Empty>;
+
+        bindExchange(destination: string, source: string, pattern: string, args?: any): when.Promise<Replies.Empty>;
+        unbindExchange(destination: string, source: string, pattern: string, args?: any): when.Promise<Replies.Empty>;
+
+        publish(exchange: string, routingKey: string, content: Buffer, options?: Options.Publish): boolean;
+        sendToQueue(queue: string, content: Buffer, options?: Options.Publish): boolean;
+
+        consume(queue: string, onMessage: (msg: Message) => any, options?: Options.Consume): when.Promise<Replies.Consume>;
+
+        cancel(consumerTag: string): when.Promise<Replies.Empty>;
+        get(queue: string, options?: Options.Get): when.Promise<Message | boolean>;
+
+        ack(message: Message, allUpTo?: boolean): void;
+        ackAll(): void;
+
+        nack(message: Message, allUpTo?: boolean, requeue?: boolean): void;
+        nackAll(requeue?: boolean): void;
+        reject(message: Message, requeue?: boolean): void;
+
+        prefetch(count: number, global?: boolean): when.Promise<Replies.Empty>;
+        recover(): when.Promise<Replies.Empty>;
+    }
+
+    function connect(url: string, socketOptions?: any): when.Promise<Connection>;
+}
+
+declare module "amqplib/callback_api" {
+
+    import events = require("events");
+    import shared = require("amqplib/properties")
+    export import Replies = shared.Replies;
+    export import Options = shared.Options;
+    export import Message = shared.Message;
+
+    interface Connection extends events.EventEmitter {
+        close(callback?: (err: any) => void): void;
+        createChannel(callback: (err: any, channel: Channel) => void): void;
+        createConfirmChannel(callback: (err: any, confirmChannel: ConfirmChannel) => void): void;
     }
 
     interface Channel extends events.EventEmitter {

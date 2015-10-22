@@ -22,6 +22,12 @@
     },
     "winston/winston.d.ts": {
       "commit": "30387ec3dd6eb426cc48522fd3aef09ada83aa48"
+    },
+    "amqplib/amqplib.d.ts": {
+      "commit": "44cbde48eecd1918ed54b3be49a9752688b6c65a"
+    },
+    "when/when.d.ts": {
+      "commit": "44cbde48eecd1918ed54b3be49a9752688b6c65a"
     }
   }
 }

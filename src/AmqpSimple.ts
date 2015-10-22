@@ -6,8 +6,6 @@
  * the inside of the enclosing namespace.
  */
 
-/// <reference path="../typings_custom/amqplib_callback/amqplib_callback.d.ts" />
-
 // simplified use of amqp exchanges and queues, wrapper for amqplib
 
 import * as Amqp from "amqplib/callback_api";
@@ -340,7 +338,7 @@ export namespace AmqpSimple {
     }
 
     unbind(source: Exchange, pattern?: string, args?: any): Promise<void> {
-      return this._connection._bindings[Binding.id(this, source)].delete();
+      return this._connection._bindings[Binding.id(this, source, pattern)].delete();
     }
 
     consumerQueueName(): string {
@@ -583,7 +581,7 @@ export namespace AmqpSimple {
     }
 
     unbind(source: Exchange, pattern?: string, args?: any): Promise<void> {
-      return this._connection._bindings[Binding.id(this, source)].delete();
+      return this._connection._bindings[Binding.id(this, source, pattern)].delete();
     }
   }
 
@@ -606,7 +604,7 @@ export namespace AmqpSimple {
       this._destination = destination;
       this._pattern = pattern;
       this._args = args;
-      this._destination._connection._bindings[Binding.id(this._destination, this._source)] = this;
+      this._destination._connection._bindings[Binding.id(this._destination, this._source, this._pattern)] = this;
       this._initialize();
     }
 
@@ -614,14 +612,14 @@ export namespace AmqpSimple {
       this.initialized = new Promise<Binding>((resolve, reject) => {
         var promise = this._destination.initialized;
         if (this._destination instanceof Queue) {
-          winston.log("debug", "create binding " + Binding.id(this._destination, this._source));
+          winston.log("debug", "create binding " + Binding.id(this._destination, this._source, this._pattern));
           var queue = <Queue>this._destination;
           queue.initialized.then(() => {
             queue._channel.bindQueue(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
               /* istanbul ignore if */
               if (err) {
                 winston.log("error", "Failed to create queue binding");
-                delete this._destination._connection._bindings[Binding.id(this._destination, this._source)];
+                delete this._destination._connection._bindings[Binding.id(this._destination, this._source, this._pattern)];
                 reject(err);
               } else {
                 resolve(this);
@@ -629,14 +627,14 @@ export namespace AmqpSimple {
             });
           });
         } else {
-          winston.log("debug", "create binding " + Binding.id(this._destination, this._source));
+          winston.log("debug", "create binding " + Binding.id(this._destination, this._source, this._pattern));
           var exchange = <Exchange>this._destination;
           exchange.initialized.then(() => {
             exchange._channel.bindExchange(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
               /* istanbul ignore if */
               if (err) {
                 winston.log("error", "Failed to create exchange binding");
-                delete this._destination._connection._bindings[Binding.id(this._destination, this._source)];
+                delete this._destination._connection._bindings[Binding.id(this._destination, this._source, this._pattern)];
                 reject(err);
               } else {
                 resolve(this);
@@ -657,7 +655,7 @@ export namespace AmqpSimple {
               if (err) {
                 reject(err);
               } else {
-                delete this._destination._connection._bindings[Binding.id(this._destination, this._source)];
+                delete this._destination._connection._bindings[Binding.id(this._destination, this._source, this._pattern)];
                 resolve(null);
               }
             });
@@ -670,7 +668,7 @@ export namespace AmqpSimple {
               if (err) {
                 reject(err);
               } else {
-                delete this._destination._connection._bindings[Binding.id(this._destination, this._source)];
+                delete this._destination._connection._bindings[Binding.id(this._destination, this._source, this._pattern)];
                 resolve(null);
               }
             });
@@ -679,8 +677,9 @@ export namespace AmqpSimple {
       });
     }
 
-    static id(destination: Exchange | Queue, source: Exchange): string {
-      return "[" + source._name + "]to" + (destination instanceof Queue ? "Queue" : "Exchange") + "[" + destination._name + "]";
+    static id(destination: Exchange | Queue, source: Exchange, pattern?: string): string {
+      pattern = pattern || "";
+      return "[" + source._name + "]to" + (destination instanceof Queue ? "Queue" : "Exchange") + "[" + destination._name + "]" + pattern;
     }
 
     static removeBindingsContaining(connectionPoint: Exchange | Queue): Promise<any> {
