@@ -36,6 +36,7 @@ export namespace AmqpSimple {
     private reconnectStrategy: Connection.ReconnectStrategy;
 
     _connection: Amqp.Connection;
+    _rebuilding: boolean = false;
 
     _exchanges: {[id: string] : Exchange};
     _queues: {[id: string] : Queue};
@@ -53,15 +54,24 @@ export namespace AmqpSimple {
     }
 
     private rebuildConnection(): Promise<void> {
+      if (this._rebuilding) { // only one rebuild process can be active at any time
+        winston.log("debug", "Connection rebuild already in progress, join the rebuild attempt.");
+        return this.initialized;
+      }
+      this._rebuilding = true;
       if (this._connection) {
         process.removeListener("SIGINT", this._connection.close);
       }
+
+      // rebuild the connection
       this.initialized = new Promise<void>((resolve, reject) => {
-        this.tryToConnect(0, (err) => {
+        this.tryToConnect(this, 0, (err) => {
           /* istanbul ignore if */
           if (err) {
+            this._rebuilding = false;
             reject(err);
           } else {
+            this._rebuilding = false;
             resolve(null);
           }
         });
@@ -69,28 +79,40 @@ export namespace AmqpSimple {
       /* istanbul ignore next */
       this.initialized.catch((err) => {
         winston.log("warn", "Error creating connection!");
+        throw (err);
       });
+
+      // TODO: rebuild the configuration
+
       return this.initialized;
     }
 
-    private tryToConnect(retry: number, callback: (err: any) => void) {
-      Amqp.connect(this.url, this.socketOptions, (err, connection) => {
+    private tryToConnect(thisConnection: Connection,  retry: number, callback: (err: any) => void) {
+      Amqp.connect(thisConnection.url, thisConnection.socketOptions, (err, connection) => {
         /* istanbul ignore if */
         if (err) {
           winston.log("warn" , "AMQP connection failed");
-          if (this.reconnectStrategy && (this.reconnectStrategy.retries === 0 || this.reconnectStrategy.retries > retry)) {
-            setTimeout(this.tryToConnect, this.reconnectStrategy.interval, retry + 1, callback);
+          if (thisConnection.reconnectStrategy.retries === 0 || thisConnection.reconnectStrategy.retries > retry) {
+            winston.log("warn", "Connection retry " + (retry + 1) + " in " + thisConnection.reconnectStrategy.interval + "ms");
+            setTimeout(thisConnection.tryToConnect,
+                       thisConnection.reconnectStrategy.interval,
+                       thisConnection,
+                       retry + 1,
+                       callback
+                     );
           } else { //no reconnect strategy, or retries exhausted, so return the error
+            winston.log("warn", "AMQP connection failed, exiting: No connection retries left (retry " + retry + ")");
             callback(err);
           }
         } else {
-          winston.log("debug", "AMQP connection succeeded");
+          winston.log("info", "AMQP connection succeeded");
           process.once("SIGINT", connection.close); //close the connection when the program is interrupted
           /* istanbul ignore next */
-          connection.on("error", (err) => {
-            this._rebuildAll(err); //try to rebuild the topology when the connection  unexpectedly closes
+          connection.once("error", (err) => {
+            winston.log("debug", "CONNECTION ERROR OCCURRED!!!");
+            thisConnection._rebuildAll(err); //try to rebuild the topology when the connection  unexpectedly closes
           });
-          this._connection = connection;
+          thisConnection._connection = connection;
 
           callback(null);
         }
@@ -100,42 +122,41 @@ export namespace AmqpSimple {
     _rebuildAll(err): Promise<void> {
       winston.log("warn", "AMQP connection error: " + err.message);
 
+      winston.log("debug", "rebuilding connection NOW");
+      this.rebuildConnection();
+
+      // re initialize configuration
+      //re initialize exchanges, queues and bindings if they exist
+      for (var exchangeId in this._exchanges) {
+        var exchange = this._exchanges[exchangeId];
+        winston.log("debug", "Re initialize Exchange " + exchange._name);
+        exchange._initialize();
+      }
+      for (var queueId in this._queues) {
+        var queue = this._queues[queueId];
+        var consumer = queue._consumer;
+        var consumerOptions = queue._consumerOptions;
+        winston.log("debug", "Re initialize queue " + queue._name);
+        queue._initialize();
+        if (consumer) {
+          winston.log("debug", "Re initialize consumer for queue " + queue._name);
+          queue._initializeConsumer();
+        }
+      }
+      for (var bindingId in this._bindings) {
+        var binding = this._bindings[bindingId];
+        winston.log("debug", "Re initialize binding from " + binding._source._name + " to " + binding._destination._name);
+        binding._initialize();
+      }
+
       return new Promise<void>((resolve, reject) => {
-        winston.log("debug", "rebuilding connection NOW");
-        this.rebuildConnection().then(() => {
-          //rebuild exchanges, queues and bindings if they exist
-          for (var exchangeId in this._exchanges) {
-            var exchange = this._exchanges[exchangeId];
-            winston.log("debug", "Rebuild Exchange " + exchange._name);
-            exchange = new Exchange(this, exchange._name, exchange._type, exchange._options);
-          }
-          for (var queueId in this._queues) {
-            var queue = this._queues[queueId];
-            var consumer = queue._consumer;
-            var consumerOptions = queue._consumerOptions;
-            winston.log("debug", "Rebuild queue " + queue._name);
-            queue = new Queue(this, queue._name, queue._options);
-            if (consumer) {
-              queue.startConsumer(consumer, consumerOptions);
-            }
-          }
-          for (var bindingId in this._bindings) {
-            var binding = this._bindings[bindingId];
-            winston.log("debug", "Rebuild binding from " + binding._source._name + " to " + binding._destination._name);
-            var source = this._exchanges[binding._source._name];
-            var destination = (binding._destination instanceof Queue) ?
-                                this._queues[binding._destination._name] :
-                                this._exchanges[binding._destination._name];
-            binding = new Binding(destination, source, binding._pattern, binding._args);
-          }
-          this.completeConfiguration().then(() => {
-            winston.log("debug", "Rebuild success");
-            resolve(null);
-          }, /* istanbul ignore next */
-          (rejectReason) => {
-            winston.log("debug", "Rebuild failed");
-            reject(rejectReason);
-          });
+        this.completeConfiguration().then(() => {
+          winston.log("debug", "Rebuild success");
+          resolve(null);
+        }, /* istanbul ignore next */
+        (rejectReason) => {
+          winston.log("debug", "Rebuild failed");
+          reject(rejectReason);
         });
       });
     }
@@ -239,7 +260,10 @@ export namespace AmqpSimple {
       this._name = name;
       this._type = type;
       this._options = options;
+      this._initialize();
+    }
 
+    _initialize() {
       this.initialized = new Promise<Exchange>((resolve, reject) => {
         this._connection.initialized.then(() => {
           this._connection._connection.createChannel((err, channel) => {
@@ -248,7 +272,7 @@ export namespace AmqpSimple {
               reject(err);
             } else {
               this._channel = channel;
-              this._channel.assertExchange(name, type, <Amqp.Options.AssertExchange>options, (err, ok) => {
+              this._channel.assertExchange(this._name, this._type, <Amqp.Options.AssertExchange>this._options, (err, ok) => {
                 /* istanbul ignore if */
                 if (err) {
                   console.log("Failed to create exchange " + this._name);
@@ -406,6 +430,11 @@ export namespace AmqpSimple {
       this._connection = connection;
       this._name = name;
       this._options = options;
+      this._connection._queues[this._name] = this;
+      this._initialize();
+    }
+
+    _initialize() {
       this.initialized = new Promise<Queue>((resolve, reject) => {
         this._connection.initialized.then(() => {
           this._connection._connection.createChannel((err, channel) => {
@@ -414,7 +443,7 @@ export namespace AmqpSimple {
               reject(err);
             } else {
               this._channel = channel;
-              this._channel.assertQueue(name, <Amqp.Options.AssertQueue>options, (err, ok) => {
+              this._channel.assertQueue(this._name, <Amqp.Options.AssertQueue>this._options, (err, ok) => {
                 /* istanbul ignore if */
                 if (err) {
                   winston.log("error", "Failed to create queue " + this._name);
@@ -428,7 +457,6 @@ export namespace AmqpSimple {
           });
         });
       });
-      this._connection._queues[this._name] = this;
     }
 
     publish(content: any, options?: any) {
@@ -470,6 +498,14 @@ export namespace AmqpSimple {
         });
       }
 
+      this._consumerOptions = options;
+      this._consumer = onMessage;
+      this._initializeConsumer();
+
+      return this._consumerInitialized;
+    }
+
+    _initializeConsumer() {
       var consumerFunction = (msg: Amqp.Message) => {
         if (!msg) {
           return; // ignore empty messages (for now)
@@ -478,15 +514,13 @@ export namespace AmqpSimple {
         if (msg.properties.contentType === "application/json") {
           payload = JSON.parse(payload);
         }
-        onMessage(payload);
+        this._consumer(payload);
         this._channel.ack(msg);
       };
 
-      this._consumerOptions = options;
-      this._consumer = onMessage;
       this._consumerInitialized = new Promise<Queue.StartConsumerResult>((resolve, reject) => {
         this.initialized.then(() => {
-          this._channel.consume(this._name, consumerFunction, <Amqp.Options.Consume>options, (err, ok) => {
+          this._channel.consume(this._name, consumerFunction, <Amqp.Options.Consume>this._options, (err, ok) => {
             /* istanbul ignore if */
             if (err) {
               reject(err);
@@ -497,7 +531,6 @@ export namespace AmqpSimple {
           });
         });
       });
-      return this._consumerInitialized;
     }
 
     stopConsumer(): Promise<void> {
@@ -573,17 +606,21 @@ export namespace AmqpSimple {
       this._destination = destination;
       this._pattern = pattern;
       this._args = args;
+      this._destination._connection._bindings[Binding.id(this._destination, this._source)] = this;
+      this._initialize();
+    }
 
+    _initialize() {
       this.initialized = new Promise<Binding>((resolve, reject) => {
         var promise = this._destination.initialized;
         if (this._destination instanceof Queue) {
           winston.log("debug", "create binding " + Binding.id(this._destination, this._source));
           var queue = <Queue>this._destination;
           queue.initialized.then(() => {
-            queue._channel.bindQueue(this._destination._name, source._name, pattern, args, (err, ok) => {
+            queue._channel.bindQueue(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
               /* istanbul ignore if */
               if (err) {
-                console.log("Failed to create binding");
+                winston.log("error", "Failed to create queue binding");
                 delete this._destination._connection._bindings[Binding.id(this._destination, this._source)];
                 reject(err);
               } else {
@@ -593,11 +630,12 @@ export namespace AmqpSimple {
           });
         } else {
           winston.log("debug", "create binding " + Binding.id(this._destination, this._source));
-          var exchange = <Queue>this._destination;
+          var exchange = <Exchange>this._destination;
           exchange.initialized.then(() => {
-            exchange._channel.bindExchange(this._destination._name, source._name, pattern, args, (err, ok) => {
+            exchange._channel.bindExchange(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
               /* istanbul ignore if */
               if (err) {
+                winston.log("error", "Failed to create exchange binding");
                 delete this._destination._connection._bindings[Binding.id(this._destination, this._source)];
                 reject(err);
               } else {
@@ -607,7 +645,6 @@ export namespace AmqpSimple {
           });
         }
       });
-      this._destination._connection._bindings[Binding.id(this._destination, this._source)] = this;
     }
 
     delete(): Promise<void> {

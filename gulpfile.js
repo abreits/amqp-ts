@@ -94,7 +94,7 @@ gulp.task('copy-to-lib', ['compile'], function () {
   .pipe(gulp.dest('lib'));
 });
 
-
+// unit tests, more a fast integration test because at the moment it uses an external AMQP server
 gulp.task('test', ['copy-to-lib'], function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
@@ -106,6 +106,7 @@ gulp.task('test', ['copy-to-lib'], function () {
     .on('error', swallowError);
 });
 
+// integration tests, at the moment more an extended version of the unit tests
 gulp.task('test:integration', ['copy-to-lib'], function () {
   return gulp.src('transpiled/**/*.spec-i.js', {
     read: false

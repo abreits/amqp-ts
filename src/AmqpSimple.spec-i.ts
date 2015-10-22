@@ -1,6 +1,6 @@
 /**
- * Tests for AmqpSimple
- * Created by Ab on 2015-09-16.
+ * Integration tests for AmqpSimple
+ * Created by Ab on 2015-10-21.
  */
 import * as winston from "winston";
 import * as Chai from "chai";
@@ -9,7 +9,7 @@ var expect = Chai.expect;
 import {AmqpSimple as Amqp} from "../lib/amqp-ts";
 
 /**
- * Until we get a good mock for amqplib we will test using a local rabbitmq instance
+ * Test using a local rabbitmq instance
  */
 // define test defaults
 var ConnectionUrl = process.env.AMQPTEST_CONNECTION_URL || "amqp://localhost";
@@ -19,20 +19,49 @@ var LogLevel = process.env.AMQPTEST_LOGLEVEL || "warn";
 // set logging level
 winston.level = LogLevel;
 
+// cleanup function for the AMQP connection, also tests the Connection.deleteConfiguration method
+/* istanbul ignore next */
+function cleanup(connection, done) {
+  "use strict";
+  connection.deleteConfiguration().then(() => {
+    return connection.close();
+  }).then(() => {
+    done();
+  }, (err) => {
+    done(err);
+  });
+}
+
+// restart the amqp server
+/* istanbul ignore next */
+function restartAmqpServer() {
+  "use strict";
+  var os = require("os");
+  var isWin = /^win/.test(os.platform());
+  var path = require("path");
+  var cp = require("child_process");
+
+  // windows only code
+  console.log("restarting rabbitmq");
+  if (isWin) {
+    try {
+      cp.execSync("net stop rabbitmq");
+      cp.exec("net start rabbitmq");
+    } catch (err) {
+      winston.log("error", "Unable to restart RabbitMQ, possible solution: use elevated permissions (start an admin shell)");
+      throw (new Error("Unable to restart rabbitmq, error:\n" + err.message));
+    }
+  } else {
+    throw (new Error("AmqpServer restart not implemented on this platform"));
+  }
+
+}
+
 /* istanbul ignore next */
 describe("Test AmqpSimple module", function() {
   this.timeout(UnitTestTimeout); // define default timeout
 
-  // cleanup function for the AMQP connection, also tests the Connection.deleteConfiguration method
-  function cleanup(connection, done) {
-    connection.deleteConfiguration().then(() => {
-      return connection.close();
-    }).then(() => {
-      done();
-    }, (err) => {
-      done(err);
-    });
-  }
+
 
   describe("AMQP Connection class initialization", () => {
     it("should create a RabbitMQ connection", (done) => {
@@ -405,6 +434,53 @@ describe("Test AmqpSimple module", function() {
         expect(message).equals("Test");
         cleanup(connection, done);
       });
+    });
+  });
+});
+
+describe("AMQP Connection class automatic reconnection", function() {
+  this.timeout(60000); // define long timeout for rabbitmq service restart (with possible human interaction required)
+  it("should reconnect a queue when detecting a broken connection", (done) => {
+    // initialize
+    var connection = new Amqp.Connection(ConnectionUrl);
+
+    // test code
+    var queue = connection.declareQueue("TestQueue");
+    queue.startConsumer((message) => {
+      expect(message).equals("Test");
+      cleanup(connection, done);
+    }).then(() => {
+      restartAmqpServer();
+      setTimeout(() => {
+        queue.publish("Test");
+      }, 1000);
+    }).catch((err) => {
+      console.log("Consumer intialization FAILED!!!");
+      done(err);
+    });
+  });
+
+    it("should reconnect and rebuild a complete configuration when detecting a broken connection", (done) => {
+    // initialize
+    var connection = new Amqp.Connection(ConnectionUrl);
+
+    // test code
+    var exchange1 = connection.declareExchange("TestExchange1");
+    var exchange2 = connection.declareExchange("TestExchange2");
+    var queue = connection.declareQueue("TestQueue");
+    exchange2.bind(exchange1);
+    queue.bind(exchange2);
+    queue.startConsumer((message) => {
+      expect(message).equals("Test");
+      cleanup(connection, done);
+    }).then(() => {
+      restartAmqpServer();
+      setTimeout(() => {
+        exchange1.publish("Test");
+      }, 1000);
+    }).catch((err) => {
+      console.log("Consumer intialization FAILED!!!");
+      done(err);
     });
   });
 });
