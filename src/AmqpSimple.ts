@@ -57,9 +57,6 @@ export namespace AmqpSimple {
         return this.initialized;
       }
       this._rebuilding = true;
-      if (this._connection) {
-        process.removeListener("SIGINT", this._connection.close);
-      }
 
       // rebuild the connection
       this.initialized = new Promise<void>((resolve, reject) => {
@@ -103,13 +100,14 @@ export namespace AmqpSimple {
             callback(err);
           }
         } else {
-          winston.log("info", "AMQP connection succeeded");
-          process.once("SIGINT", connection.close); //close the connection when the program is interrupted
-          /* istanbul ignore next */
-          connection.once("error", (err) => {
+          var restart = (err) => {
             winston.log("debug", "CONNECTION ERROR OCCURRED!!!");
+            connection.removeListener("error", restart);
+            //connection.removeListener("end", restart); // not sure this is needed
             thisConnection._rebuildAll(err); //try to rebuild the topology when the connection  unexpectedly closes
-          });
+          };
+          connection.on("error", restart);
+          //connection.on("end", restart); // not sure this is needed
           thisConnection._connection = connection;
 
           callback(null);
@@ -167,7 +165,6 @@ export namespace AmqpSimple {
               if (err) {
                 reject(err);
               } else {
-                process.removeListener("SIGINT", this._connection.close);
                 resolve(null);
               }
           });
@@ -612,7 +609,6 @@ export namespace AmqpSimple {
       this.initialized = new Promise<Binding>((resolve, reject) => {
         var promise = this._destination.initialized;
         if (this._destination instanceof Queue) {
-          winston.log("debug", "create binding " + Binding.id(this._destination, this._source, this._pattern));
           var queue = <Queue>this._destination;
           queue.initialized.then(() => {
             queue._channel.bindQueue(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
@@ -627,7 +623,6 @@ export namespace AmqpSimple {
             });
           });
         } else {
-          winston.log("debug", "create binding " + Binding.id(this._destination, this._source, this._pattern));
           var exchange = <Exchange>this._destination;
           exchange.initialized.then(() => {
             exchange._channel.bindExchange(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
