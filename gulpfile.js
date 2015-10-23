@@ -89,8 +89,7 @@ gulp.task('lint', function () {
 });
 
 gulp.task('copy-to-lib', ['compile'], function () {
-  return gulp.src('transpiled/AmqpSimple.js')
-  .pipe(rename('amqp-ts.js'))
+  return gulp.src('transpiled/amqp-ts.js')
   .pipe(gulp.dest('lib'));
 });
 

@@ -6,7 +6,7 @@ import * as winston from "winston";
 import * as Chai from "chai";
 var expect = Chai.expect;
 
-import {AmqpSimple as Amqp} from "../lib/amqp-ts";
+import * as Amqp from "../lib/amqp-ts";
 
 /**
  * Until we get a good mock for amqplib we will test using a local rabbitmq instance

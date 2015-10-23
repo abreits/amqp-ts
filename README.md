@@ -34,9 +34,9 @@ bindings and send and receive messages. The library takes care of any direct dep
 If you define an exchange and a queue and bind the queue to the exchange and want to make
 sure that the queue is connected to the exchange before you send a message to the exchange you can call the `connection.completeConfiguration()` method and act on the promise it returns.
 
-### Typescript Example
+### ES6/Typescript Example
 
-    import * as Amqp from "AmqpSimple";
+    import * as Amqp from "amqp-ts";
 
     var connection = new Amqp.Connection("amqp://localhost");
     var exchange = connection.declareExchange("ExchangeName");
@@ -56,6 +56,27 @@ sure that the queue is connected to the exchange before you send a message to th
         exchange.send("Test2");
     });
 
+### Javascript Example
+
+    var Amqp = require("amqp-ts");
+
+    var connection = new Amqp.Connection("amqp://localhost");
+    var exchange = connection.declareExchange("ExchangeName");
+    var queue = connection.bind("QueueName");
+    queue.bind(exchange);
+    queue.startConsumer(function (message) {
+        console.log("Message received: " + message);
+    }
+
+    // it is possible that the following message is not received because
+    // it can be sent before the queue, binding or consumer exist
+    exchange.send("Test");
+
+    connection.completeConfiguration().then(function () {
+        // the following message will be received because
+        // everything you defined earlier for this connection now exists
+        exchange.send("Test2");
+    });
 
 Automatic Reconnection    <a name="reconnect"></a>
 ----------------------
@@ -90,7 +111,9 @@ You can build and test the library using gulp:
 
     gulp
     gulp test:coverage
+    gulp test:integration
 
+The integration tests only work in windows at the moment and need to have enough privileges to stop and restart the RabbitMQ service, so you probably need to start this from an admin command prompt.
 
 
 API Reference    <a name="api"></a>
@@ -133,11 +156,11 @@ The connection class defines the connection with the AMQP server.
 
 #### methods
 
-###### constructor(url?: string, socketOptions?: any, reconnectStrategy?: ReconnectStrategy)    <a name="connection_constructor"></a>
+###### constructor (url?: string, socketOptions?: any, reconnectStrategy?: ReconnectStrategy)    <a name="connection_constructor"></a>
 > Creates a new connection to an AMQP server
 >
 > parameters
-> -   `url?: string` : amqp connection string in [amqplib.connect](http://www.squaremobius.net/amqp.node/channel_api.html#connect) format, defaults to `'amqp://localhost'`.
+> -   `url?: string` : amqp connection string in [amqplib.connect](http://www.squaremobius.net/amqp.node/channel_api.html#connect) format, defaults to `"amqp://localhost"`.
 > -   `socketOptions?: any` : socket options as explained in [amqplib.connect](http://www.squaremobius.net/amqp.node/channel_api.html#connect).
 > -   `reconnectStrategy?: ReconnectStrategy` : defines the reconnection strategy used, defaults to `{retries: 0 //forever//, interval: 1500 //ms//}`.
 >
@@ -148,7 +171,7 @@ The connection class defines the connection with the AMQP server.
 >     var connection = new Amqp.Connection("amqp://localhost?heartbeat=60");
 [back to API reference](#api)
 
-##### connection.close(): Promise < void >    <a name="connection_close"></a>
+##### connection.close (): Promise < void >    <a name="connection_close"></a>
 > Closes the connection
 >
 > result
@@ -159,7 +182,7 @@ The connection class defines the connection with the AMQP server.
 >     connection.close();
 [back to API reference](#api)
 
-##### connection.declareExchange(name: string, type?: string, options?: Amqp.Options.AssertExchange): Exchange    <a name="connection_declareExchange"></a>
+##### connection.declareExchange (name: string, type?: string, options?: Amqp.Options.AssertExchange): Exchange    <a name="connection_declareExchange"></a>
 > Connect to the exchange on the server and create it if it does not already exist.
 >
 > parameters
@@ -175,7 +198,7 @@ The connection class defines the connection with the AMQP server.
 >     connection.declareExchange("exchangeName", "amq.topic", {durable: false});
 [back to API reference](#api)
 
-##### connection.declareQueue(name: string, options?: Amqp.Options.AssertQueue): Queue    <a name="connection_declareQueue"></a>
+##### connection.declareQueue (name: string, options?: Amqp.Options.AssertQueue): Queue    <a name="connection_declareQueue"></a>
 > Connect to the queue on the server and create it if it does not already exist.
 >
 > parameters
@@ -190,7 +213,7 @@ The connection class defines the connection with the AMQP server.
 >     connection.declareQueue("queueName", {durable: false});
 [back to API reference](#api)
 
-##### connection.completeConfiguration(): Promise < void >    <a name="connection_completeConfiguration"></a>
+##### connection.completeConfiguration (): Promise < void >    <a name="connection_completeConfiguration"></a>
 > Makes sure every defined Exchange, Queue and Binding for this Connection is resolved.
 >
 > result
@@ -203,7 +226,7 @@ The connection class defines the connection with the AMQP server.
 >     });
 [back to API reference](#api)
 
-##### connection.deleteConfiguration(): Promise < void >    <a name="connection_deleteConfiguration"></a>
+##### connection.deleteConfiguration (): Promise < void >    <a name="connection_deleteConfiguration"></a>
 > Deletes every defined Exchange, Queue and Binding defined in this Connection.
 > <br>**warning:** this deletes the exchanges, queues and bindings from the AMQP server, even if they already existed before.
 >
@@ -261,7 +284,7 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 >     var exchange = new Exchange(connection, "exchangeName", "amq.topic", {durable: false});
 [back to API reference](#api)
 
-##### exchange.delete(): Promise < void >    <a name="exchange_delete"></a>
+##### exchange.delete (): Promise < void >    <a name="exchange_delete"></a>
 > Delete the exchange
 >
 > result
@@ -274,7 +297,7 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 >     });
 [back to API reference](#api)
 
-##### exchange.bind(source: Exchange, pattern?: string, args?: any): Promise < void >    <a name="exchange_bind"></a>
+##### exchange.bind (source: Exchange, pattern?: string, args?: any): Promise < void >    <a name="exchange_bind"></a>
 > Bind this exchange to another exchange (RabbitMQ extension).
 >
 > parameters
@@ -296,7 +319,7 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 >     });
 [back to API reference](#api)
 
-##### exchange.unbind(source: Exchange, pattern?: string, args?: any): Promise < void >    <a name="exchange_unbind"></a>
+##### exchange.unbind (source: Exchange, pattern?: string, args?: any): Promise < void >    <a name="exchange_unbind"></a>
 > Remove binding.
 >
 > parameters
@@ -314,7 +337,7 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 >     });
 [back to API reference](#api)
 
-##### exchange.publish(content: any, routingKey?: string, options?: any): void    <a name="exchange_publish"></a>
+##### exchange.publish (content: any, routingKey?: string, options?: any): void    <a name="exchange_publish"></a>
 > Publish a message to an exchange
 >
 > parameters
@@ -330,12 +353,12 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 >     exchange.publish("ExampleMessageString");
 [back to API reference](#api)
 
-##### exchange.consumerQueueName(): string    <a name="exchange_consumerQueueName"></a>
+##### exchange.consumerQueueName (): string    <a name="exchange_consumerQueueName"></a>
 > Returns a meaningfull unique name for the default consumer queue of the exchange.
 > The default unique names generated by RabbitMQ are rather cryptic for an administrator, this can help.
 [back to API reference](#api)
 
-##### exchange.startConsumer(onMessage: (msg: any) => void, options?: Amqp.Options.Consume): Promise < void >    <a name="exchange_startConsumer"></a>
+##### exchange.startConsumer (onMessage: (msg: any) => void, options?: Amqp.Options.Consume): Promise < void >    <a name="exchange_startConsumer"></a>
 > Define the function that can process messages for this exchange.
 > Only one consumer can be active per exchange.
 > Under water it creates a consumerqueue with consumerQueueName that is bound to the exchange, from which the messages are read.
@@ -354,7 +377,7 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 >     };
 [back to API reference](#api)
 
-##### exchange.stopConsumer(): Promise < void >    <a name="exchange_stopConsumer"></a>
+##### exchange.stopConsumer (): Promise < void >    <a name="exchange_stopConsumer"></a>
 > Stops the consumer function and deletes the queue and binding created in startConsumer.
 >
 > result
@@ -407,7 +430,7 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >     var queue = new Queue(connection, "queueName", "amq.topic", {durable: false});
 [back to API reference](#api)
 
-##### queue.delete(): Promise < void >    <a name="queue_delete"></a>
+##### queue.delete (): Promise < void >    <a name="queue_delete"></a>
 > Delete the queue
 >
 > result
@@ -420,7 +443,7 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >     });
 [back to API reference](#api)
 
-##### queue.bind(source: Exchange, pattern?: string, args?: any): Promise < void >    <a name="queue_bind"></a>
+##### queue.bind (source: Exchange, pattern?: string, args?: any): Promise < void >    <a name="queue_bind"></a>
 > Bind this queue to an exchange.
 >
 > parameters
@@ -442,7 +465,7 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >     });
 [back to API reference](#api)
 
-##### queue.unbind(source: Exchange, pattern?: string, args?: any): Promise < void >    <a name="queue_unbind"></a>
+##### queue.unbind (source: Exchange, pattern?: string, args?: any): Promise < void >    <a name="queue_unbind"></a>
 > Remove binding.
 >
 > parameters
@@ -460,7 +483,7 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >     });
 [back to API reference](#api)
 
-##### queue.publish(content: any, routingKey?: string, options?: any): void    <a name="queue_publish"></a>
+##### queue.publish (content: any, routingKey?: string, options?: any): void    <a name="queue_publish"></a>
 > Publish a message to an queue
 >
 > parameters
@@ -476,7 +499,7 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >     queue.publish("ExampleMessageString");
 [back to API reference](#api)
 
-##### queue.startConsumer(onMessage: (msg: any) => void, options?: Amqp.Options.Consume): Promise < void >    <a name="queue_startConsumer"></a>
+##### queue.startConsumer (onMessage: (msg: any) => void, options?: Amqp.Options.Consume): Promise < void >    <a name="queue_startConsumer"></a>
 > Define the function that can process messages for this queue.
 > Only one consumer can be active per queue.
 > Under water it creates a consumerqueue with consumerQueueName that is bound to the queue, from which the messages are read.
@@ -495,7 +518,7 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >     };
 [back to API reference](#api)
 
-##### queue.stopConsumer(): Promise < void >    <a name="queue_stopConsumer"></a>
+##### queue.stopConsumer (): Promise < void >    <a name="queue_stopConsumer"></a>
 > Stops the consumer function and deletes the queue and binding created in startConsumer.
 >
 > result
