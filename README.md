@@ -166,7 +166,7 @@ The connection class defines the connection with the AMQP server.
 >
 > example
 >
->     import * as Amqp from "AmqpSimple";
+>     import * as Amqp from "amqp-ts";
 >
 >     var connection = new Amqp.Connection("amqp://localhost?heartbeat=60");
 [back to API reference](#api)
