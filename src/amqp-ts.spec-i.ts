@@ -377,7 +377,7 @@ describe("Test AmqpSimple module", function() {
       queue.startConsumer((message) => {
         done(new Error("Received unexpected message"));
       }).catch((err) => {
-        expect(err.message).equal("AMQP Queue.startConsumer error: consumer already defined");
+        expect(err.message).equal("amqp-ts Queue.startConsumer error: consumer already defined");
         cleanup(connection, done);
       });
     });
@@ -395,7 +395,7 @@ describe("Test AmqpSimple module", function() {
       exchange1.startConsumer((message) => {
         done(new Error("Received unexpected message"));
       }).catch((err) => {
-        expect(err.message).equal("AMQP Exchange.startConsumer error: consumer already defined");
+        expect(err.message).equal("amqp-ts Exchange.startConsumer error: consumer already defined");
         cleanup(connection, done);
       });
     });
@@ -428,7 +428,7 @@ describe("Test AmqpSimple module", function() {
       exchange1.stopConsumer().then(() => {
         return exchange1.stopConsumer();
       }).catch((err) => {
-        expect(err.message).equals("AMQP Exchange.cancelConsumer error: no consumer defined");
+        expect(err.message).equals("amqp-ts Exchange.cancelConsumer error: no consumer defined");
         cleanup(connection, done);
       });
     });
@@ -446,7 +446,7 @@ describe("Test AmqpSimple module", function() {
       queue.stopConsumer().then(() => {
         return queue.stopConsumer();
       }).catch((err) => {
-        expect(err.message).equals("AMQP Queue.cancelConsumer error: no consumer defined");
+        expect(err.message).equals("amqp-ts Queue.cancelConsumer error: no consumer defined");
         cleanup(connection, done);
       });
     });

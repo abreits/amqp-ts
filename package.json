@@ -15,6 +15,10 @@
   "author": "Ab Reitsma",
   "main": "lib/amqp-ts.js",
   "typings": "lib/amqp-ts.d.ts",
+  "scripts": {
+    "test": "gulp test",
+    "test-integration": "gulp test:integration"
+  },
   "dependencies": {
     "amqplib": "^0.4.0",
     "bluebird": "^2.10.2",
