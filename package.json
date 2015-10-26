@@ -1,6 +1,6 @@
 {
   "name": "amqp-ts",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Easy to use AMQP library written in Typescript (using amqplib).",
   "repository": {
     "type": "git",
