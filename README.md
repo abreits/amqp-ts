@@ -1,12 +1,36 @@
 AmqpSimple (amqp-ts)
 ====================
 
+- [What's new](#whatsnew)
+- [Roadmap](#roadmap)
 - [Overview](#overview)
 - [Lazy Initialization](#lazy)
 - [Automatic Reconnection](#reconnect)
 - [Logging](#logging)
 - [Building the library](#build)
 - [API reference](#api)
+
+
+What's new    <a name="whatsnew"></a>
+----------
+
+### version 0.9.2
+
+ - Added this section
+ - Added the roadmap section
+ - Improved the winston logging messages
+
+
+Roadmap    <a name="roadmap"></a>
+-------
+
+The roadmap section describes things that I want to add or change in the (hopefully near) future.
+
+ - Add support for RabbitMQ 'direct reply-to' RPC functionality
+ - Add a 'low level' queue consumer that receives the raw message and needs to 'ack' or 'nack' these messages itself
+ - Move (sections of) this (rather large) readme page to the wiki
+ - Better source code documentation, maybe even use jsdoc or tsdoc to generate the api documentation
+ - Look into better logging facilities
 
 
 Overview    <a name="overview"></a>
@@ -22,7 +46,7 @@ It does depend on the following npm libraries:
 - [bluebird](https://github.com/petkaantonov/bluebird)
 - [winston](https://github.com/winstonjs/winston)
 
-The DefinitelyTyped [tsd] tool can is used to manage the typescript type definitions.
+The DefinitelyTyped [tsd] tool is used to manage the typescript type definitions.
 
 
 Lazy Initialization    <a name="lazy"></a>

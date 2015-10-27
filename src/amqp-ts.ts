@@ -17,7 +17,7 @@ import * as os from "os";
 var ApplicationName = process.env.AMQPSIMPLE_APPLICATIONNAME || path.parse(process.argv[1]).name;
 
 //----------------------------------------------------------------------------------------------------
-// Exchange class
+// Connection class
 //----------------------------------------------------------------------------------------------------
 export class Connection {
   initialized: Promise<void>;
