@@ -14,7 +14,7 @@ AmqpSimple (amqp-ts)
 What's new    <a name="whatsnew"></a>
 ----------
 
-### version 0.9.2
+### version 0.9.3
 
  - Added this section
  - Added the roadmap section
