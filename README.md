@@ -14,10 +14,10 @@ AmqpSimple (amqp-ts)
 What's new    <a name="whatsnew"></a>
 ----------
 
-### version 0.9.4
+### version 0.9.4 & 0.9.5
 
  - small code cleanup: defined default optional parameter values in typescript
- - fixed a bug when publishing a message to an exchange after a reconnect
+ - fixed a few bugs when publishing a message to an exchange after a disconnect/reconnect
 
 ### version 0.9.3
 
