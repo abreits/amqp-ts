@@ -17,7 +17,7 @@ What's new    <a name="whatsnew"></a>
 ### version 0.9.4
 
  - small code cleanup: defined default optional parameter values in typescript
- - fixed a bug when publishing a message to an exchange after a reconnect 
+ - fixed a bug when publishing a message to an exchange after a reconnect
 
 ### version 0.9.3
 
@@ -373,7 +373,7 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 > -   `content: any` : the content to be sent to the exchange. the following preprocessing takes place if it is a
 >   - *Buffer* : send the content as is (no preprocessing)
 >   - *string* : create a Buffer from the string and send that buffer
->   - *everything else* : create a Buffer from the to JSON converted object and, if not undefined, set the contentType option to `"application/json"`
+>   - *everything else* : create a Buffer from the to JSON converted object and, if not defined, set the contentType option to `"application/json"`
 > -   `routingKey?: string` : routing key for the message, defaults to `""`.
 > -   `options?: any` : publish options as defined in [amqplib](http://www.squaremobius.net/amqp.node/channel_api.html#channel_publish).
 >
@@ -519,7 +519,7 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 > -   `content: any` : the content to be sent to the queue. the following preprocessing takes place if it is a
 >   - *Buffer* : send the content as is (no preprocessing)
 >   - *string* : create a Buffer from the string and send that buffer
->   - *everything else* : create a Buffer from the to JSON converted object and, if not undefined, set the contentType option to `"application/json"`
+>   - *everything else* : create a Buffer from the to JSON converted object and, if not defined, set the contentType option to `"application/json"`
 > -   `routingKey?: string` : routing key for the message, defaults to `""`.
 > -   `options?: any` : publish options as defined in [amqplib](http://www.squaremobius.net/amqp.node/channel_api.html#channel_publish).
 >

@@ -37,6 +37,9 @@ export class Connection {
   constructor (url = "amqp://localhost",
                socketOptions: any = {},
                reconnectStrategy: Connection.ReconnectStrategy = {retries: 0, interval: 1500}) {
+    this.url = url;
+    this.socketOptions = socketOptions;
+    this.reconnectStrategy = reconnectStrategy;
     this._exchanges = {};
     this._queues = {};
     this._bindings = {};
