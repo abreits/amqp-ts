@@ -406,5 +406,33 @@ describe("Test AmqpSimple module", function() {
         cleanup(connection, done);
       });
     });
+
+    it("should accept optional parameters", (done) => {
+      // initialize
+      var connection = new Amqp.Connection(ConnectionUrl);
+      var messagesReceived = 0;
+
+      // test code
+      var exchange1 = connection.declareExchange("TestExchange1", "topic", {durable: true});
+      var exchange2 = connection.declareExchange("TestExchange2", "topic", {durable: true});
+      var queue = connection.declareQueue("TestQueue", {durable: true});
+      queue.bind(exchange1, "*.*", {});
+      exchange1.bind(exchange2, "*.test", {});
+
+      connection.completeConfiguration().then(() => {
+        exchange2.publish("ParameterTest", "topic.test", {});
+        exchange1.publish("ParameterTest", "topic.test2", {});
+        queue.publish("ParameterTest", {});
+      });
+
+      queue.startConsumer((message) => {
+        expect(message).equals("ParameterTest");
+        messagesReceived++;
+        //expect three messages
+        if (messagesReceived === 3) {
+          cleanup(connection, done);
+        }
+      });
+    });
   });
 });

@@ -34,14 +34,13 @@ export class Connection {
   _queues: {[id: string] : Queue};
   _bindings: {[id: string] : Binding};
 
-  constructor (url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy) {
+  constructor (url = "amqp://localhost",
+               socketOptions: any = {},
+               reconnectStrategy: Connection.ReconnectStrategy = {retries: 0, interval: 1500}) {
     this._exchanges = {};
     this._queues = {};
     this._bindings = {};
 
-    this.url = url || "amqp://localhost";
-    this.socketOptions = socketOptions || {};
-    this.reconnectStrategy = reconnectStrategy || {retries: 0, interval: 1500};
     this.rebuildConnection();
   }
 
@@ -283,15 +282,13 @@ export class Exchange {
     this._connection._exchanges[this._name] = this;
   }
 
-  publish(content: any, routingKey?: string, options?: any): void {
+  publish(content: any, routingKey = "", options: any = {}): void {
     if (typeof content === "string") {
       content = new Buffer(content);
     } else if (!(content instanceof Buffer)) {
       content = new Buffer(JSON.stringify(content));
-      options = options || {};
       options.contentType = options.contentType || "application/json";
     }
-    routingKey = routingKey || "";
     this.initialized.then(() => {
       try {
         this._channel.publish(this._name, routingKey, content, options);
@@ -301,7 +298,7 @@ export class Exchange {
         var connection = this._connection;
         connection._rebuildAll(err).then(() => {
           winston.log("debug", "amqp-ts: Retransmitting message");
-          connection._exchanges[exchangeName].publish(content, options);
+          connection._exchanges[exchangeName].publish(content, routingKey, options);
         });
       }
     });
@@ -328,12 +325,12 @@ export class Exchange {
     });
   }
 
-  bind(source: Exchange, pattern?: string, args?: any): Promise<Binding> {
+  bind(source: Exchange, pattern = "", args: any = {}): Promise<Binding> {
     var binding = new Binding(this, source, pattern, args);
     return binding.initialized;
   }
 
-  unbind(source: Exchange, pattern?: string, args?: any): Promise<void> {
+  unbind(source: Exchange, pattern = "", args: any = {}): Promise<void> {
     return this._connection._bindings[Binding.id(this, source, pattern)].delete();
   }
 
@@ -438,7 +435,7 @@ export class Queue {
     });
   }
 
-  publish(content: any, options?: any) {
+  publish(content: any, options: any = {}) {
     // inline function to send the message
     var sendMessage = () => {
       try {
@@ -459,7 +456,6 @@ export class Queue {
       content = new Buffer(content);
     } else if (!(content instanceof Buffer)) {
       content = new Buffer(JSON.stringify(content));
-      options = options || {};
       options.contentType = "application/json";
     }
     // execute sync when possible
@@ -499,7 +495,7 @@ export class Queue {
 
     this._consumerInitialized = new Promise<Queue.StartConsumerResult>((resolve, reject) => {
       this.initialized.then(() => {
-        this._channel.consume(this._name, consumerFunction, <Amqp.Options.Consume>this._options, (err, ok) => {
+        this._channel.consume(this._name, consumerFunction, <Amqp.Options.Consume>this._consumerOptions, (err, ok) => {
           /* istanbul ignore if */
           if (err) {
             reject(err);
@@ -556,12 +552,12 @@ export class Queue {
     });
   }
 
-  bind(source: Exchange, pattern?: string, args?: any): Promise<Binding> {
+  bind(source: Exchange, pattern = "", args: any = {}): Promise<Binding> {
     var binding = new Binding(this, source, pattern, args);
     return binding.initialized;
   }
 
-  unbind(source: Exchange, pattern?: string, args?: any): Promise<void> {
+  unbind(source: Exchange, pattern = "", args: any = {}): Promise<void> {
     return this._connection._bindings[Binding.id(this, source, pattern)].delete();
   }
 }
@@ -605,9 +601,7 @@ export class Binding {
   _pattern: string;
   _args: any;
 
-  constructor(destination: Exchange | Queue, source: Exchange, pattern?: string, args?: any) {
-    pattern = pattern || "";
-    args = args || {};
+  constructor(destination: Exchange | Queue, source: Exchange, pattern = "", args: any = {}) {
     this._source = source;
     this._destination = destination;
     this._pattern = pattern;
