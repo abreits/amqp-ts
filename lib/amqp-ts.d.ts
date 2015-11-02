@@ -36,13 +36,17 @@ export declare namespace Exchange {
         alternateExchange?: string;
         arguments?: any;
     }
+    export interface InitializeResult {
+        exchange: string;
+    }
 }
 export class Exchange {
-    initialized: Promise<Exchange>;
+    initialized: Promise<Exchange.InitializeResult>;
 
     constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions);
     publish(content: any, routingKey?: string, options?: any): void;
     delete(): Promise<void>;
+    close(): Promise<void>;
     bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
     unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
     consumerQueueName(): string;
@@ -71,18 +75,24 @@ export declare namespace Queue {
     interface StartConsumerResult {
         consumerTag: string;
     }
+    export interface InitializeResult {
+        queue: string;
+        messageCount: number;
+        consumerCount: number;
+    }
     interface DeleteResult {
         messageCount: number;
     }
 }
 export class Queue {
-    initialized: Promise<Queue>;
+    initialized: Promise<Queue.InitializeResult>;
 
     constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
     publish(content: any, options?: any): void;
     startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult>;
     stopConsumer(): Promise<void>;
     delete(): Promise<Queue.DeleteResult>;
+    close(): Promise<Queue.DeleteResult>;
     bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
     unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
 }

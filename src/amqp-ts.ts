@@ -243,7 +243,7 @@ export namespace Connection {
 // Exchange class
 //----------------------------------------------------------------------------------------------------
 export class Exchange {
-  initialized: Promise<Exchange>;
+  initialized: Promise<Exchange.InitializeResult>;
 
   _connection: Connection;
   _channel: Amqp.Channel;
@@ -260,7 +260,7 @@ export class Exchange {
   }
 
   _initialize() {
-    this.initialized = new Promise<Exchange>((resolve, reject) => {
+    this.initialized = new Promise<Exchange.InitializeResult>((resolve, reject) => {
       this._connection.initialized.then(() => {
         this._connection._connection.createChannel((err, channel) => {
           /* istanbul ignore if */
@@ -275,7 +275,7 @@ export class Exchange {
                 delete this._connection._exchanges[this._name];
                 reject(err);
               } else {
-                resolve(this);
+                resolve(<Exchange.InitializeResult>ok);
               }
             });
           }
@@ -317,9 +317,37 @@ export class Exchange {
           if (err) {
             reject(err);
           } else {
-            delete this.initialized; // invalidate exchange
+            this._channel.close((err) => {
+              delete this.initialized; // invalidate exchange
+              delete this._connection._exchanges[this._name]; // remove the exchange from our administration
+              /* istanbul ignore if */
+              if (err) {
+                reject(err);
+              } else {
+                delete this._channel;
+                delete this._connection;
+                resolve(null);
+              }
+            });
+          }
+        });
+      });
+    });
+  }
+
+  close(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.initialized.then(() => {
+        return Binding.removeBindingsContaining(this);
+      }).then(() => {
+        delete this.initialized; // invalidate exchange
+        delete this._connection._exchanges[this._name]; // remove the exchange from our administration
+        this._channel.close((err) => {
+          /* istanbul ignore if */
+          if (err) {
+            reject(err);
+          } else {
             delete this._channel;
-            delete this._connection._exchanges[this._name]; // remove the exchange from our administration
             delete this._connection;
             resolve(null);
           }
@@ -380,11 +408,14 @@ export class Exchange {
 export namespace Exchange {
   "use strict";
   export interface DeclarationOptions {
-          durable?: boolean;
-          internal?: boolean;
-          autoDelete?: boolean;
-          alternateExchange?: string;
-          arguments?: any;
+    durable?: boolean;
+    internal?: boolean;
+    autoDelete?: boolean;
+    alternateExchange?: string;
+    arguments?: any;
+  }
+  export interface InitializeResult {
+    exchange: string;
   }
 }
 
@@ -393,7 +424,7 @@ export namespace Exchange {
 // Queue class
 //----------------------------------------------------------------------------------------------------
 export class Queue {
-  initialized: Promise<Queue>;
+  initialized: Promise<Queue.InitializeResult>;
 
   _connection: Connection;
   _channel: Amqp.Channel;
@@ -414,7 +445,7 @@ export class Queue {
   }
 
   _initialize() {
-    this.initialized = new Promise<Queue>((resolve, reject) => {
+    this.initialized = new Promise<Queue.InitializeResult>((resolve, reject) => {
       this._connection.initialized.then(() => {
         this._connection._connection.createChannel((err, channel) => {
           /* istanbul ignore if */
@@ -429,7 +460,7 @@ export class Queue {
                 delete this._connection._queues[this._name];
                 reject(err);
               } else {
-                resolve(this);
+                resolve(<Queue.InitializeResult>ok);
               }
             });
           }
@@ -545,10 +576,38 @@ export class Queue {
             reject(err);
           } else {
             delete this.initialized; // invalidate queue
-            delete this._channel;
             delete this._connection._queues[this._name]; // remove the queue from our administration
+            this._channel.close((err) => {
+              /* istanbul ignore if */
+              if (err) {
+                reject(err);
+              } else {
+                delete this._channel;
+                delete this._connection;
+                resolve(<Queue.DeleteResult>ok);
+              }
+            });
+          }
+        });
+      });
+    });
+  }
+
+  close(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.initialized.then(() => {
+        return Binding.removeBindingsContaining(this);
+      }).then(() => {
+        delete this.initialized; // invalidate queue
+        delete this._connection._queues[this._name]; // remove the queue from our administration
+        this._channel.close((err) => {
+          /* istanbul ignore if */
+          if (err) {
+            reject(err);
+          } else {
+            delete this._channel;
             delete this._connection;
-            resolve(<Queue.DeleteResult>ok);
+            resolve(null);
           }
         });
       });
@@ -586,6 +645,11 @@ export namespace Queue {
   }
   export interface StartConsumerResult {
     consumerTag: string;
+  }
+  export interface InitializeResult {
+    queue: string;
+    messageCount: number;
+    consumerCount: number;
   }
   export interface DeleteResult {
     messageCount: number;

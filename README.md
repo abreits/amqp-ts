@@ -14,9 +14,16 @@ AmqpSimple (amqp-ts)
 What's new    <a name="whatsnew"></a>
 ----------
 
+### version 0.10
+
+ - added close methods to [Exchange](#api) and [Queue](#api)
+ - changed Promise type for [Exchange.initialized](#exchange_initialized) and [Queue.initialized](#queue_initialized)
+ - minor readme fixes
+ - improved robustness for unit tests
+
 ### version 0.9.4 & 0.9.5
 
- - small code cleanup: defined default optional parameter values in typescript
+ - small code cleanup: defined optional parameter default values in typescript
  - fixed a few bugs when publishing a message to an exchange after a disconnect/reconnect
 
 ### version 0.9.3
@@ -41,7 +48,7 @@ The roadmap section describes things that I want to add or change in the (hopefu
 Overview    <a name="overview"></a>
 --------
 
-AmqpSimple is a library for nodejs written in Typescript that simplifies communication with AMQP message busses. It has been tested on RabbitMQ. It uses the [amqplib](http://www.squaremobius.net/amqp.node/) library by [Michael Bridgen (squaremo)](https://github.com/squaremo).
+Amqp-ts is a library for nodejs that simplifies communication with AMQP message busses written in Typescript. It has been tested on RabbitMQ. It uses the [amqplib](http://www.squaremobius.net/amqp.node/) library by [Michael Bridgen (squaremo)](https://github.com/squaremo).
 
 This is a work in progress currently in a beta state.
 
@@ -159,6 +166,7 @@ API Reference    <a name="api"></a>
 - [Exchange](#exchange)
   - [constructor](#exchange_constructor)
   - [delete](#exchange_delete)
+  - [close](#exchange_close)
   - [bind](#exchange_bind)
   - [unbind](#exchange_unbind)
   - [publish](#exchange_publish)
@@ -169,6 +177,7 @@ API Reference    <a name="api"></a>
 - [Queue](#queue)
   - [constructor](#queue_constructor)
   - [delete](#queue_delete)
+  - [close](#queue_close)
   - [bind](#queue_bind)
   - [unbind](#queue_unbind)
   - [publish](#queue_publish)
@@ -326,6 +335,19 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 >     });
 [back to API reference](#api)
 
+##### exchange.close (): Promise < void >    <a name="exchange_close"></a>
+> Close the exchange only in amqp-ts, does not delete a persistent exchange
+>
+> result
+> -   `Promise<void>` : promise that resolves when the exchange is closed (or an error has occurred).
+>
+> example
+>
+>     exchange.delete().then(() => {
+>         // do things when the exchange is deleted
+>     });
+[back to API reference](#api)
+
 ##### exchange.bind (source: Exchange, pattern?: string, args?: any): Promise < void >    <a name="exchange_bind"></a>
 > Bind this exchange to another exchange (RabbitMQ extension).
 >
@@ -419,12 +441,13 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 
 #### properties
 
-##### exchange.initialized: Promise < void >    <a name="exchange_initialized"></a>
+##### exchange.initialized: Promise < Exchange.InitializeResult >    <a name="exchange_initialized"></a>
 > indicates whether the exchange initialization is resolved (or rejected)
 >
 > example
 >
->     exchange.initialized.then(() => {
+>     exchange.initialized.then((result) => {
+>         console.log("Exchange initialized: " + result.exchange);
 >         // stuff to do
 >     }
 >     exchange.initialized.catch(() => {
@@ -464,6 +487,19 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >
 > result
 > -   `Promise<void>` : promise that resolves when the queue is deleted (or an error has occurred).
+>
+> example
+>
+>     queue.delete().then(() => {
+>         // do things when the queue is deleted
+>     });
+[back to API reference](#api)
+
+##### queue.close (): Promise < void >    <a name="queue_close"></a>
+> Close the queue only in amqp-ts, does not delete a persistent queue
+>
+> result
+> -   `Promise<void>` : promise that resolves when the queue is closed (or an error has occurred).
 >
 > example
 >
@@ -560,12 +596,16 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 
 #### properties
 
-##### queue.initialized: Promise < void >;    <a name="queue_initialized"></a>
+##### queue.initialized: Promise < Queue.InitializeResult >;    <a name="queue_initialized"></a>
 > indicates whether the queue initialization is resolved (or rejected)
 >
 > example
 >
->     queue.initialized.then(() => {
+>     queue.initialized.then((result) => {
+>         console.log("Queue initialized!");
+>         console.log("Queue name", result.name);
+>         console.log("Queue messageCount", result.messageCount);
+>         console.log("Queue consumerCount", result.consumerCount);
 >         // stuff to do
 >     }
 >     queue.initialized.catch(() => {
