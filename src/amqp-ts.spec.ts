@@ -6,6 +6,7 @@ import * as winston from "winston";
 import * as Chai from "chai";
 var expect = Chai.expect;
 
+import * as AmqpLib from "amqplib/callback_api";
 import * as Amqp from "../lib/amqp-ts";
 
 /**
@@ -138,6 +139,31 @@ describe("Test AmqpSimple module", function() {
 
       connection.completeConfiguration().then(() => {
         queue.publish(testObj);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should create a Queue, send a simple string message and receive the raw message", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+      var rawConsumer = (message: AmqpLib.Message, channel: AmqpLib.Channel) => {
+        try {
+          expect(message.content.toString()).equals("Test");
+          channel.ack(message);
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      };
+
+      queue.startConsumer(rawConsumer, {rawMessage: true});
+
+      connection.completeConfiguration().then(() => {
+        queue.publish("Test");
       }, (err) => { // failed to configure the defined topology
         done(err);
       });

@@ -8,7 +8,7 @@
 
 // simplified use of amqp exchanges and queues, wrapper for amqplib
 
-import * as Amqp from "amqplib/callback_api";
+import * as AmqpLib from "amqplib/callback_api";
 import * as Promise from "bluebird";
 import * as winston from "winston";
 import * as path from "path";
@@ -26,7 +26,7 @@ export class Connection {
   private socketOptions: any;
   private reconnectStrategy: Connection.ReconnectStrategy;
 
-  _connection: Amqp.Connection;
+  _connection: AmqpLib.Connection;
   private connectedBefore = false;
   _rebuilding: boolean = false;
 
@@ -85,7 +85,7 @@ export class Connection {
   }
 
   private tryToConnect(thisConnection: Connection,  retry: number, callback: (err: any) => void) {
-    Amqp.connect(thisConnection.url, thisConnection.socketOptions, (err, connection) => {
+    AmqpLib.connect(thisConnection.url, thisConnection.socketOptions, (err, connection) => {
       /* istanbul ignore if */
       if (err) {
         winston.log("warn" , "amqp-ts: Connection failed");
@@ -246,10 +246,10 @@ export class Exchange {
   initialized: Promise<Exchange.InitializeResult>;
 
   _connection: Connection;
-  _channel: Amqp.Channel;
+  _channel: AmqpLib.Channel;
   _name: string;
   _type: string;
-  _options: Amqp.Options.AssertExchange;
+  _options: AmqpLib.Options.AssertExchange;
 
   constructor (connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions) {
     this._connection = connection;
@@ -268,7 +268,7 @@ export class Exchange {
             reject(err);
           } else {
             this._channel = channel;
-            this._channel.assertExchange(this._name, this._type, <Amqp.Options.AssertExchange>this._options, (err, ok) => {
+            this._channel.assertExchange(this._name, this._type, <AmqpLib.Options.AssertExchange>this._options, (err, ok) => {
               /* istanbul ignore if */
               if (err) {
                 winston.log("error" , "amqp-ts: Failed to create exchange " + this._name);
@@ -427,11 +427,12 @@ export class Queue {
   initialized: Promise<Queue.InitializeResult>;
 
   _connection: Connection;
-  _channel: Amqp.Channel;
+  _channel: AmqpLib.Channel;
   _name: string;
   _options: Queue.DeclarationOptions;
 
-  _consumer: (msg: any) => void;
+  _consumer: (msg: any, channel?: AmqpLib.Channel) => void;
+  _rawConsumer: boolean;
   _consumerOptions: Queue.StartConsumerOptions;
   _consumerTag: string;
   _consumerInitialized: Promise<Queue.StartConsumerResult>;
@@ -453,7 +454,7 @@ export class Queue {
             reject(err);
           } else {
             this._channel = channel;
-            this._channel.assertQueue(this._name, <Amqp.Options.AssertQueue>this._options, (err, ok) => {
+            this._channel.assertQueue(this._name, <AmqpLib.Options.AssertQueue>this._options, (err, ok) => {
               /* istanbul ignore if */
               if (err) {
                 winston.log("error", "amqp-ts: Failed to create queue " + this._name);
@@ -500,13 +501,17 @@ export class Queue {
     }
   }
 
-  startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult> {
+  startConsumer( onMessage: (msg: any, channel?: AmqpLib.Channel) => void,
+                 options: Queue.StartConsumerOptions = {})
+               : Promise<Queue.StartConsumerResult> {
     if (this._consumerInitialized) {
       return new Promise<Queue.StartConsumerResult>((_, reject) => {
         reject(new Error("amqp-ts Queue.startConsumer error: consumer already defined"));
       });
     }
 
+    this._rawConsumer = (options.rawMessage === true);
+    delete options.rawMessage; // remove to avoid possible problems with amqplib
     this._consumerOptions = options;
     this._consumer = onMessage;
     this._initializeConsumer();
@@ -515,21 +520,36 @@ export class Queue {
   }
 
   _initializeConsumer() {
-    var consumerFunction = (msg: Amqp.Message) => {
-      if (!msg) {
-        return; // ignore empty messages (for now)
+    var processedMsgConsumer = (msg: AmqpLib.Message) => {
+      try {
+        if (!msg) {
+          return; // ignore empty messages (for now)
+        }
+        var payload = msg.content.toString();
+        if (msg.properties.contentType === "application/json") {
+          payload = JSON.parse(payload);
+        }
+        this._consumer(payload);
+        if (this._consumerOptions.noAck !== true) {
+          this._channel.ack(msg);
+        }
+      } catch (err) {
+        winston.log("error", "amqp-ts Queue.onMessage consumer function returned error: " + err.message);
       }
-      var payload = msg.content.toString();
-      if (msg.properties.contentType === "application/json") {
-        payload = JSON.parse(payload);
+    };
+
+    var rawMsgConsumer = (msg: AmqpLib.Message) => {
+      try {
+        this._consumer(msg, this._channel);
+      } catch (err) {
+        winston.log("error", "amqp-ts Queue.onMessage consumer function returned error: " + err.message);
       }
-      this._consumer(payload);
-      this._channel.ack(msg);
     };
 
     this._consumerInitialized = new Promise<Queue.StartConsumerResult>((resolve, reject) => {
       this.initialized.then(() => {
-        this._channel.consume(this._name, consumerFunction, <Amqp.Options.Consume>this._consumerOptions, (err, ok) => {
+        var consumerFunction = this._rawConsumer ? rawMsgConsumer : processedMsgConsumer;
+        this._channel.consume(this._name, consumerFunction, <AmqpLib.Options.Consume>this._consumerOptions, (err, ok) => {
           /* istanbul ignore if */
           if (err) {
             reject(err);
@@ -636,6 +656,7 @@ export namespace Queue {
     maxLength?: number;
   }
   export interface StartConsumerOptions {
+    rawMessage?: boolean;
     consumerTag?: string;
     noLocal?: boolean;
     noAck?: boolean;

@@ -50,7 +50,7 @@ export class Exchange {
     bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
     unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
     consumerQueueName(): string;
-    startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<void>;
+    startConsumer(onMessage: (msg: any, channel?: any) => void, options?: Queue.StartConsumerOptions): Promise<void>;
     stopConsumer(): Promise<void>;
 }
 export declare namespace Queue {
@@ -65,6 +65,7 @@ export declare namespace Queue {
         maxLength?: number;
     }
     interface StartConsumerOptions {
+        rawMessage?: boolean;
         consumerTag?: string;
         noLocal?: boolean;
         noAck?: boolean;
@@ -89,7 +90,7 @@ export class Queue {
 
     constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
     publish(content: any, options?: any): void;
-    startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult>;
+    startConsumer(onMessage: (msg: any, channel?: any) => void, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult>;
     stopConsumer(): Promise<void>;
     delete(): Promise<Queue.DeleteResult>;
     close(): Promise<Queue.DeleteResult>;
