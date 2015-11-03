@@ -597,7 +597,7 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >         console.log(msg.properties);
 >         channel.ack(msg);
 >     }
->     queue.startConsumer(rawconsumerFunction, {rawMessage: true})
+>     queue.startConsumer(rawConsumerFunction, {rawMessage: true})
 [back to API reference](#api)
 
 ##### queue.stopConsumer (): Promise < void >    <a name="queue_stopConsumer"></a>
