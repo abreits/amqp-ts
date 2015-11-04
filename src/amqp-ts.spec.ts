@@ -605,5 +605,51 @@ describe("Test AmqpSimple module", function() {
         });
       });
     });
+
+    it("should process a queue rpc", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+
+      queue.startConsumer((message) => {
+        return message.reply;
+      });
+
+      connection.completeConfiguration().then(function () {
+        queue.rpc({reply: "TestRpc"}).then((result) => {
+          try {
+            expect(result).equals("TestRpc");
+            cleanup(connection, done);
+          } catch (err) {
+            cleanup(connection, done, err);
+          }
+        });
+      });
+    });
+
+    it("should process an exchange rpc", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange = connection.declareExchange(nextExchangeName());
+
+      exchange.startConsumer((message) => {
+        return message.reply;
+      });
+
+      connection.completeConfiguration().then(function () {
+        exchange.rpc({reply: "TestRpc"}).then((result) => {
+          try {
+            expect(result).equals("TestRpc");
+            cleanup(connection, done);
+          } catch (err) {
+            cleanup(connection, done, err);
+          }
+        });
+      });
+    });
   });
 });

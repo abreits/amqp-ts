@@ -1,18 +1,104 @@
-AmqpSimple (amqp-ts)
-====================
+amqp-ts (AMQP TypeScript)
+=========================
 
+- [Overview](#overview)
 - [What's new](#whatsnew)
 - [Roadmap](#roadmap)
-- [Overview](#overview)
-- [Lazy Initialization](#lazy)
-- [Automatic Reconnection](#reconnect)
-- [Logging](#logging)
 - [Building the library](#build)
-- [API reference](#api)
+- [API reference](doc/api)
+
+
+Overview    <a name="overview"></a>
+--------
+
+Amqp-ts is a library for nodejs that simplifies communication with AMQP message busses written in Typescript. It has been tested on RabbitMQ. It uses the [amqplib](http://www.squaremobius.net/amqp.node/) library by [Michael Bridgen (squaremo)](https://github.com/squaremo).
+
+This is a work in progress currently in a beta state.
+
+It is compatible with the new Typescript 1.6 module type definition resulution for node.js.
+
+It does depend on the following npm libraries:
+- [bluebird](https://github.com/petkaantonov/bluebird)
+- [winston](https://github.com/winstonjs/winston)
+
+The DefinitelyTyped [tsd] tool is used to manage the typescript type definitions.
+
+
+### Lazy Initialization
+
+No need to nest functionality, just create a connection, declare your exchanges, queues and
+bindings and send and receive messages. The library takes care of any direct dependencies.
+
+If you define an exchange and a queue and bind the queue to the exchange and want to make
+sure that the queue is connected to the exchange before you send a message to the exchange you can call the `connection.completeConfiguration()` method and act on the promise it returns.
+
+#### ES6/Typescript Example
+
+    import * as Amqp from "amqp-ts";
+
+    var connection = new Amqp.Connection("amqp://localhost");
+    var exchange = connection.declareExchange("ExchangeName");
+    var queue = connection.bind("QueueName");
+    queue.bind(exchange);
+    queue.startConsumer((message) => {
+        console.log("Message received: " + message);
+    }
+
+    // it is possible that the following message is not received because
+    // it can be sent before the queue, binding or consumer exist
+    exchange.send("Test");
+
+    connection.completeConfiguration().then(() => {
+        // the following message will be received because
+        // everything you defined earlier for this connection now exists
+        exchange.send("Test2");
+    });
+
+#### Javascript Example
+
+    var Amqp = require("amqp-ts");
+
+    var connection = new Amqp.Connection("amqp://localhost");
+    var exchange = connection.declareExchange("ExchangeName");
+    var queue = connection.bind("QueueName");
+    queue.bind(exchange);
+    queue.startConsumer(function (message) {
+        console.log("Message received: " + message);
+    }
+
+    // it is possible that the following message is not received because
+    // it can be sent before the queue, binding or consumer exist
+    exchange.send("Test");
+
+    connection.completeConfiguration().then(function () {
+        // the following message will be received because
+        // everything you defined earlier for this connection now exists
+        exchange.send("Test2");
+    });
+
+
+### Automatic Reconnection
+
+When the library detects that the connection with the AMQP server is lost, it tries to automatically reconnect to the server.
+
+This is still an experimental feature and has not been thoroughly tested.
+
+### Logging    <a name="logging"></a>
+
+TODO: describe winston configuration. Maybe changed or removed in future versions.
+
 
 
 What's new    <a name="whatsnew"></a>
 ----------
+
+### version 0.10.2
+
+ - rearranged this readme
+ - added rpc support to the [Queue](#queue_rpc) and [Exchange](#exchange_rpc) for [RabbitMQ 'direct reply-to'](https://www.rabbitmq.com/direct-reply-to.html) RPC functionality
+ - updated dependencies
+ - updated the documentation
+
 
 ### version 0.10.1
 
@@ -39,97 +125,16 @@ What's new    <a name="whatsnew"></a>
  - Improved the winston logging messages
 
 
+
 Roadmap    <a name="roadmap"></a>
 -------
 
 The roadmap section describes things that I want to add or change in the (hopefully near) future.
 
- - Add support for RabbitMQ 'direct reply-to' RPC functionality
  - Move (sections of) this (rather large) readme page to the wiki
  - Better source code documentation, maybe even use jsdoc or tsdoc to generate the api documentation
  - Look into better logging facilities
 
-
-Overview    <a name="overview"></a>
---------
-
-Amqp-ts is a library for nodejs that simplifies communication with AMQP message busses written in Typescript. It has been tested on RabbitMQ. It uses the [amqplib](http://www.squaremobius.net/amqp.node/) library by [Michael Bridgen (squaremo)](https://github.com/squaremo).
-
-This is a work in progress currently in a beta state.
-
-It is compatible with the new Typescript 1.6 module type definition resulution for node.js.
-
-It does depend on the following npm libraries:
-- [bluebird](https://github.com/petkaantonov/bluebird)
-- [winston](https://github.com/winstonjs/winston)
-
-The DefinitelyTyped [tsd] tool is used to manage the typescript type definitions.
-
-
-Lazy Initialization    <a name="lazy"></a>
--------------------
-
-No need to nest functionality, just create a connection, declare your exchanges, queues and
-bindings and send and receive messages. The library takes care of any direct dependencies.
-
-If you define an exchange and a queue and bind the queue to the exchange and want to make
-sure that the queue is connected to the exchange before you send a message to the exchange you can call the `connection.completeConfiguration()` method and act on the promise it returns.
-
-### ES6/Typescript Example
-
-    import * as Amqp from "amqp-ts";
-
-    var connection = new Amqp.Connection("amqp://localhost");
-    var exchange = connection.declareExchange("ExchangeName");
-    var queue = connection.bind("QueueName");
-    queue.bind(exchange);
-    queue.startConsumer((message) => {
-        console.log("Message received: " + message);
-    }
-
-    // it is possible that the following message is not received because
-    // it can be sent before the queue, binding or consumer exist
-    exchange.send("Test");
-
-    connection.completeConfiguration().then(() => {
-        // the following message will be received because
-        // everything you defined earlier for this connection now exists
-        exchange.send("Test2");
-    });
-
-### Javascript Example
-
-    var Amqp = require("amqp-ts");
-
-    var connection = new Amqp.Connection("amqp://localhost");
-    var exchange = connection.declareExchange("ExchangeName");
-    var queue = connection.bind("QueueName");
-    queue.bind(exchange);
-    queue.startConsumer(function (message) {
-        console.log("Message received: " + message);
-    }
-
-    // it is possible that the following message is not received because
-    // it can be sent before the queue, binding or consumer exist
-    exchange.send("Test");
-
-    connection.completeConfiguration().then(function () {
-        // the following message will be received because
-        // everything you defined earlier for this connection now exists
-        exchange.send("Test2");
-    });
-
-Automatic Reconnection    <a name="reconnect"></a>
-----------------------
-
-When the library detects that the connection with the AMQP server is lost, it tries to automatically reconnect to the server.
-
-This is still an experimental feature and has not been thoroughly tested.
-
-Logging    <a name="logging"></a>
--------
-
-TODO: describe winston configuration. Maybe changed or removed in future versions.
 
 
 Building the library    <a name="build"></a>
@@ -157,6 +162,7 @@ You can build and test the library using gulp:
 The integration tests only work in windows at the moment and need to have enough privileges to stop and restart the RabbitMQ service, so you probably need to start this from an admin command prompt.
 
 
+
 API Reference    <a name="api"></a>
 -------------
 
@@ -175,6 +181,7 @@ API Reference    <a name="api"></a>
   - [bind](#exchange_bind)
   - [unbind](#exchange_unbind)
   - [publish](#exchange_publish)
+  - [rpc](#exchange_rpc)
   - [consumerQueueName](#exchange_consumerQueueName)
   - [startConsumer](#exchange_startConsumer)
   - [stopConsumer](#exchange_stopConsumer)
@@ -186,6 +193,7 @@ API Reference    <a name="api"></a>
   - [bind](#queue_bind)
   - [unbind](#queue_unbind)
   - [publish](#queue_publish)
+  - [rpc](#queue_rpc)
   - [startConsumer](#queue_startConsumer)
   - [stopConsumer](#queue_stopConsumer)
   - [initialized](#queue_initialized)
@@ -409,18 +417,38 @@ The Exchange class defines an AMQP exchange. Normally only created from within a
 >     exchange.publish("ExampleMessageString");
 [back to API reference](#api)
 
+##### exchange.rpc(requestParameters: any, routingKey = ""): Promise<any>    <a name="exchange_rpc"></a>
+> Execute a [RabbitMQ 'direct reply-to'](https://www.rabbitmq.com/direct-reply-to.html) remote procedure call
+>
+> parameters
+> -   `requestParameters: any` : the rpc parameters to be sent to the exchange. the following preprocessing takes place if it is a
+>   - *Buffer* : send the content as is (no preprocessing)
+>   - *string* : create a Buffer from the string and send that buffer
+>   - *everything else* : create a Buffer from the to JSON converted object and, if not defined, set the contentType option to `"application/json"`
+> -   `routingKey?: string` : routing key for the message, defaults to `""`.
+>
+> result
+> -   `Promise<any>` : promise that resolves when the result is received
+>
+> example
+>
+>     exchange.rpc("Parameters").then((result) => {
+>       console.log("Rpc result: " + result);
+>     });
+[back to API reference](#api)
+
 ##### exchange.consumerQueueName (): string    <a name="exchange_consumerQueueName"></a>
 > Returns a meaningfull unique name for the default consumer queue of the exchange.
 > The default unique names generated by RabbitMQ are rather cryptic for an administrator, this can help.
 [back to API reference](#api)
 
-##### exchange.startConsumer (onMessage: (msg: any, channel?: AmqpLib.Channel) => void, options?: Queue.StartConsumerOptions): Promise < void >    <a name="exchange_startConsumer"></a>
+##### exchange.startConsumer (onMessage: (msg: any, channel?: AmqpLib.Channel) => any, options?: Queue.StartConsumerOptions): Promise < void >    <a name="exchange_startConsumer"></a>
 > Define the function that can process messages for this exchange.
 > Only one consumer can be active per exchange.
 > Under water it creates a consumerqueue with consumerQueueName that is bound to the exchange, from which the messages are read.
 >
 > parameters
-> -   `onMessage: (msg: any, channel?: AmqpLib.Channel) => void` : function that processes the messages, channel.
+> -   `onMessage: (msg: any, channel?: AmqpLib.Channel) => any` : function that processes the messages.
 > -   `options?: Queue.StartConsumerOptions` : consumer options as defined in [amqplib](http://www.squaremobius.net/amqp.node/channel_api.html#channel_consume).
 > An extra property `rawMessage` has been added to allow more low level message processing, see [queue.startConsumer](#queue_startConsumer) for more details.
 >
@@ -542,10 +570,10 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 > parameters
 > -   `source: Exchange` : source exchange this queue is connected to.
 > -   `pattern?: string` : pattern that defines which messages will be received, defaults to `""`.
-> -   `args?: any` : object containing extra arguments that may be required for the particular exchange type
+> -   `args?: any` : object containing extra arguments that may be required for the particular exchange type.
 >
 > result
-> -   `Promise<Binding>` : promise that resolves when the binding is removed
+> -   `Promise<Binding>` : promise that resolves when the binding is removed.
 >
 > example
 >
@@ -555,13 +583,13 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 [back to API reference](#api)
 
 ##### queue.publish (content: any, routingKey?: string, options?: any): void    <a name="queue_publish"></a>
-> Publish a message to an queue
+> Publish a message to an queue.
 >
 > parameters
-> -   `content: any` : the content to be sent to the queue. the following preprocessing takes place if it is a
->   - *Buffer* : send the content as is (no preprocessing)
->   - *string* : create a Buffer from the string and send that buffer
->   - *everything else* : create a Buffer from the to JSON converted object and, if not defined, set the contentType option to `"application/json"`
+> -   `content: any` : the content to be sent to the queue. the following preprocessing takes place if it is a:
+>   - *Buffer* : send the content as is (no preprocessing).
+>   - *string* : create a Buffer from the string and send that buffer.
+>   - *everything else* : create a Buffer from the to JSON converted object and, if not defined, set the contentType option to `"application/json"`.
 > -   `routingKey?: string` : routing key for the message, defaults to `""`.
 > -   `options?: any` : publish options as defined in [amqplib](http://www.squaremobius.net/amqp.node/channel_api.html#channel_publish).
 >
@@ -570,14 +598,36 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >     queue.publish("ExampleMessageString");
 [back to API reference](#api)
 
-##### queue.startConsumer (onMessage: (msg: any, channel?: AmqpLib.Channel) => void, options?: Queue.StartConsumerOptions): Promise < void >    <a name="queue_startConsumer"></a>
+##### queue.rpc(requestParameters: any): Promise<any>    <a name="queue_rpc"></a>
+> Execute a [RabbitMQ 'direct reply-to'](https://www.rabbitmq.com/direct-reply-to.html) remote procedure call.
+>
+> parameters
+> -   `requestParameters: any` : the rpc parameters to be sent to the exchange. the following preprocessing takes place if it is a
+>   - *Buffer* : send the content as is (no preprocessing)
+>   - *string* : create a Buffer from the string and send that buffer
+>   - *everything else* : create a Buffer from the to JSON converted object and, if not defined, set the contentType option to `"application/json"`
+> -   `routingKey?: string` : routing key for the message, defaults to `""`.
+>
+> result
+> -   `Promise<any>` : promise that resolves when the result is received
+>
+> example
+>
+>     queue.rpc("Parameters").then((result) => {
+>       console.log("Rpc result: " + result);
+>     });
+[back to API reference](#api)
+
+##### queue.startConsumer (onMessage: (msg: any, channel?: AmqpLib.Channel) => any, options?: Queue.StartConsumerOptions): Promise < void >    <a name="queue_startConsumer"></a>
 > Define the function that can process messages for this queue.
 > Only one consumer can be active per queue.
 > Under water it creates a consumerqueue with consumerQueueName that is bound to the queue, from which the messages are read.
 >
 > parameters
-> -   `onMessage: (msg: any, channel?: AmqpLib.Channel) => void` : function that processes the messages.
-> If the `rawMessage` option is set to true in the options, the 'raw' message, as defined in [amqplib](http://www.squaremobius.net/amqp.node/channel_api.html#channel_consume), is sent and the amqplib channel is passed as an extra parameter to allow acknowledgement of messages.
+> -   `onMessage: (msg: any, channel?: AmqpLib.Channel) => any` : function that processes the messages.
+> If the `rawMessage` option is set to true in the options, the 'raw' message, as defined in [amqplib](http://www.squaremobius.net/amqp.node/channel_api.html#channel_consume), is sent and the amqplib channel is passed as an extra parameter to allow acknowledgement of messages. Otherwise extra processing is done:
+>    - the raw message content is converted from a buffer to a string or Object and sent as the msg parameter.
+>    - if the raw message contains a 'replyTo' property, the result of the onMessage function is sent back to a queue with that name (used with rpc).
 > -   `options?: Queue.StartConsumerOptions` : consumer options as defined in [amqplib](http://www.squaremobius.net/amqp.node/channel_api.html#channel_consume), an extra property `rawMessage` has been added to allow more low level message processing.
 >
 > result
@@ -588,16 +638,29 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >     // 'normal' consumer
 >     queue.startConsumer((msg) => {
 >         console.log(msg); // receives the processed content of the message sent
->     };
+>     });
 >
 >     // 'raw' message consumer example
->     var rawConsumerFunction = (msg, channel) => {
+>     function rawConsumerFunction(msg, channel) {
 >         console.log(msg.content);
 >         console.log(msg.fields);
 >         console.log(msg.properties);
 >         channel.ack(msg);
 >     }
->     queue.startConsumer(rawConsumerFunction, {rawMessage: true})
+>     queue.startConsumer(rawConsumerFunction, {rawMessage: true});
+>
+>     // rpc server
+>     queue.startConsumer((rpcParameters) => {
+>       return rpcParameters.value;
+>     });
+>     var param = {
+>       name: "test",
+>       value: "This is a test!"
+>     }
+>     // rpc client
+>     queue.rpc(param).then((result) => {
+>       console.log(result); // should result in 'This is a test!'
+>     }
 [back to API reference](#api)
 
 ##### queue.stopConsumer (): Promise < void >    <a name="queue_stopConsumer"></a>

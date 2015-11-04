@@ -14,7 +14,9 @@ import * as winston from "winston";
 import * as path from "path";
 import * as os from "os";
 
-var ApplicationName = process.env.AMQPSIMPLE_APPLICATIONNAME || path.parse(process.argv[1]).name;
+var ApplicationName = process.env.AMQPTS_APPLICATIONNAME || path.parse(process.argv[1]).name;
+
+const DIRECT_REPLY_TO_QUEUE = "amq.rabbitmq.reply-to";
 
 //----------------------------------------------------------------------------------------------------
 // Connection class
@@ -79,8 +81,6 @@ export class Connection {
       throw (err);
     });
 
-    // TODO: rebuild the configuration
-
     return this.initialized;
   }
 
@@ -123,7 +123,6 @@ export class Connection {
     winston.log("debug", "amqp-ts: Rebuilding connection NOW");
     this.rebuildConnection();
 
-    // re initialize configuration
     //re initialize exchanges, queues and bindings if they exist
     for (var exchangeId in this._exchanges) {
       var exchange = this._exchanges[exchangeId];
@@ -307,6 +306,24 @@ export class Exchange {
     });
   }
 
+  rpc(requestParameters: any, routingKey = ""): Promise<any> {
+    return new Promise((resolve, reject) => {
+      var consumerTag;
+      this._channel.consume(DIRECT_REPLY_TO_QUEUE, (msg) => {
+        this._channel.cancel(consumerTag);
+        resolve(Queue._unpackMessageContent(msg));
+      }, {noAck: true}, (err, ok) => {
+        if (err) {
+          reject(new Error("amqp-ts: Exchange.rpc error: " + err.message));
+        } else {
+          // send the rpc request
+          consumerTag = ok.consumerTag;
+          this.publish(requestParameters, routingKey, {replyTo: DIRECT_REPLY_TO_QUEUE});
+        }
+      });
+    });
+  }
+
   delete(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.initialized.then(() => {
@@ -369,7 +386,7 @@ export class Exchange {
     return this._name + "." + ApplicationName + "." + os.hostname() + "." + process.pid;
   }
 
-  startConsumer(onMessage: (msg: any) => void, options?: Queue.StartConsumerOptions): Promise<any> {
+  startConsumer(onMessage: (msg: any) => any, options?: Queue.StartConsumerOptions): Promise<any> {
     var queueName = this.consumerQueueName();
     if (this._connection._queues[queueName]) {
       return new Promise<void>((_, reject) => {
@@ -431,7 +448,7 @@ export class Queue {
   _name: string;
   _options: Queue.DeclarationOptions;
 
-  _consumer: (msg: any, channel?: AmqpLib.Channel) => void;
+  _consumer: (msg: any, channel?: AmqpLib.Channel) => any;
   _rawConsumer: boolean;
   _consumerOptions: Queue.StartConsumerOptions;
   _consumerTag: string;
@@ -470,13 +487,31 @@ export class Queue {
     });
   }
 
+  static _packMessageContent(content, options): Buffer {
+    if (typeof content === "string") {
+      content = new Buffer(content);
+    } else if (!(content instanceof Buffer)) {
+      content = new Buffer(JSON.stringify(content));
+      options.contentType = "application/json";
+    }
+    return content;
+  }
+
+  static _unpackMessageContent(msg: AmqpLib.Message): any {
+    var content = msg.content.toString();
+    if (msg.properties.contentType === "application/json") {
+      content = JSON.parse(content);
+    }
+    return content;
+  }
+
   publish(content: any, options: any = {}) {
     // inline function to send the message
     var sendMessage = () => {
       try {
         this._channel.sendToQueue(this._name, content, options);
       } catch (err) {
-        winston.log("debug",  "amqp-ts: Exchange publish error: " + err.message);
+        winston.log("debug",  "amqp-ts: Queue publish error: " + err.message);
         var queueName = this._name;
         var connection = this._connection;
         winston.log("debug", "amqp-ts: Try to rebuild connection, before Call");
@@ -487,12 +522,7 @@ export class Queue {
       }
     };
 
-    if (typeof content === "string") {
-      content = new Buffer(content);
-    } else if (!(content instanceof Buffer)) {
-      content = new Buffer(JSON.stringify(content));
-      options.contentType = "application/json";
-    }
+    content = Queue._packMessageContent(content, options);
     // execute sync when possible
     if (this.initialized.isFulfilled()) {
       sendMessage();
@@ -501,7 +531,25 @@ export class Queue {
     }
   }
 
-  startConsumer( onMessage: (msg: any, channel?: AmqpLib.Channel) => void,
+  rpc(requestParameters: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      var consumerTag;
+      this._channel.consume(DIRECT_REPLY_TO_QUEUE, (msg) => {
+        this._channel.cancel(consumerTag);
+        resolve(Queue._unpackMessageContent(msg));
+      }, {noAck: true}, (err, ok) => {
+        if (err) {
+          reject(new Error("amqp-ts: Queue.rpc error: " + err.message));
+        } else {
+          // send the rpc request
+          consumerTag = ok.consumerTag;
+          this.publish(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
+        }
+      });
+    });
+  }
+
+  startConsumer( onMessage: (msg: any, channel?: AmqpLib.Channel) => any,
                  options: Queue.StartConsumerOptions = {})
                : Promise<Queue.StartConsumerResult> {
     if (this._consumerInitialized) {
@@ -525,11 +573,16 @@ export class Queue {
         if (!msg) {
           return; // ignore empty messages (for now)
         }
-        var payload = msg.content.toString();
-        if (msg.properties.contentType === "application/json") {
-          payload = JSON.parse(payload);
+        var payload = Queue._unpackMessageContent(msg);
+        var result = this._consumer(payload);
+        // check if there is a reply-to
+        if (msg.properties.replyTo) {
+          var options: any = {};
+          result = Queue._packMessageContent(result, options);
+          //this._channel.publish("", msg.properties.replyTo, result, options);
+          this._channel.sendToQueue(msg.properties.replyTo, result, options);
         }
-        this._consumer(payload);
+
         if (this._consumerOptions.noAck !== true) {
           this._channel.ack(msg);
         }
