@@ -313,6 +313,7 @@ export class Exchange {
         this._channel.cancel(consumerTag);
         resolve(Queue._unpackMessageContent(msg));
       }, {noAck: true}, (err, ok) => {
+        /* istanbul ignore if */
         if (err) {
           reject(new Error("amqp-ts: Exchange.rpc error: " + err.message));
         } else {
@@ -538,6 +539,7 @@ export class Queue {
         this._channel.cancel(consumerTag);
         resolve(Queue._unpackMessageContent(msg));
       }, {noAck: true}, (err, ok) => {
+        /* istanbul ignore if */
         if (err) {
           reject(new Error("amqp-ts: Queue.rpc error: " + err.message));
         } else {
@@ -570,6 +572,7 @@ export class Queue {
   _initializeConsumer() {
     var processedMsgConsumer = (msg: AmqpLib.Message) => {
       try {
+        /* istanbul ignore if */
         if (!msg) {
           return; // ignore empty messages (for now)
         }
@@ -587,6 +590,7 @@ export class Queue {
           this._channel.ack(msg);
         }
       } catch (err) {
+        /* istanbul ignore next */
         winston.log("error", "amqp-ts Queue.onMessage consumer function returned error: " + err.message);
       }
     };
@@ -595,6 +599,7 @@ export class Queue {
       try {
         this._consumer(msg, this._channel);
       } catch (err) {
+        /* istanbul ignore next */
         winston.log("error", "amqp-ts Queue.onMessage consumer function returned error: " + err.message);
       }
     };

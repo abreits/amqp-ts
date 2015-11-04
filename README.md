@@ -13,9 +13,9 @@ Overview    <a name="overview"></a>
 
 Amqp-ts is a library for nodejs that simplifies communication with AMQP message busses written in Typescript. It has been tested on RabbitMQ. It uses the [amqplib](http://www.squaremobius.net/amqp.node/) library by [Michael Bridgen (squaremo)](https://github.com/squaremo).
 
-This is a work in progress currently in a beta state.
+This is a work in progress, currently in a late beta state.
 
-It is compatible with the new Typescript 1.6 module type definition resulution for node.js.
+It is compatible with the Typescript 1.6 module type definition resulution for node.js.
 
 It does depend on the following npm libraries:
 - [bluebird](https://github.com/petkaantonov/bluebird)
@@ -653,11 +653,11 @@ The Queue class defines an AMQP queue. Normally only created from within a conne
 >     queue.startConsumer((rpcParameters) => {
 >       return rpcParameters.value;
 >     });
+>     // rpc client
 >     var param = {
 >       name: "test",
 >       value: "This is a test!"
 >     }
->     // rpc client
 >     queue.rpc(param).then((result) => {
 >       console.log(result); // should result in 'This is a test!'
 >     }
