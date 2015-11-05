@@ -27,9 +27,9 @@ export class Connection {
   private url: string;
   private socketOptions: any;
   private reconnectStrategy: Connection.ReconnectStrategy;
+  private connectedBefore = false;
 
   _connection: AmqpLib.Connection;
-  private connectedBefore = false;
   _rebuilding: boolean = false;
 
   _exchanges: {[id: string] : Exchange};
@@ -51,7 +51,7 @@ export class Connection {
 
   private rebuildConnection(): Promise<void> {
     if (this._rebuilding) { // only one rebuild process can be active at any time
-      winston.log("debug", "amqp-ts: Connection rebuild already in progress, join the rebuild attempt.");
+      winston.log("debug", "amqp-ts: Connection rebuild already in progress, joining active rebuild attempt.");
       return this.initialized;
     }
     this._rebuilding = true;
@@ -582,7 +582,6 @@ export class Queue {
         if (msg.properties.replyTo) {
           var options: any = {};
           result = Queue._packMessageContent(result, options);
-          //this._channel.publish("", msg.properties.replyTo, result, options);
           this._channel.sendToQueue(msg.properties.replyTo, result, options);
         }
 
