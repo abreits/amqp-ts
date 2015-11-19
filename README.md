@@ -85,6 +85,8 @@ sure that the queue is connected to the exchange before you send a message to th
         exchange.publish("Test2");
     });
 
+More examples can be found in the [tutorials directory](https://github.com/abreits/amqp-ts/tree/master/tutorials).
+
 
 ### Automatic Reconnection    <a name="reconnect"></a>
 
