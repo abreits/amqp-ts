@@ -21,9 +21,7 @@ queue.rpc(num).then(function(result) {
 });
 
 // or use the way explained in the example
-
-
-
+// todo: write the code!
 
 
 // after half a second close the connection
