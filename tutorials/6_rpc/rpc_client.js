@@ -20,7 +20,7 @@ queue.rpc(num).then(function(result) {
   console.log(' [.] Got ', result);
 });
 
-// or use the way explained in the example
+// or use the method explained in the tutorial
 // todo: write the code!
 
 
