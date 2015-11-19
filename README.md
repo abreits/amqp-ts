@@ -27,6 +27,7 @@ Amqp-ts is a library for nodejs that simplifies communication with AMQP message 
 This is a work in progress, currently in a late beta state.
 
 It does depend on the following npm libraries:
+- [amqplib](http://www.squaremobius.net/amqp.node/)
 - [bluebird](https://github.com/petkaantonov/bluebird)
 - [winston](https://github.com/winstonjs/winston)
 
@@ -46,7 +47,7 @@ sure that the queue is connected to the exchange before you send a message to th
 
     var connection = new Amqp.Connection("amqp://localhost");
     var exchange = connection.declareExchange("ExchangeName");
-    var queue = connection.bind("QueueName");
+    var queue = connection.declareQueue("QueueName");
     queue.bind(exchange);
     queue.startConsumer((message) => {
         console.log("Message received: " + message);
@@ -54,12 +55,12 @@ sure that the queue is connected to the exchange before you send a message to th
 
     // it is possible that the following message is not received because
     // it can be sent before the queue, binding or consumer exist
-    exchange.send("Test");
+    exchange.publish("Test");
 
     connection.completeConfiguration().then(() => {
         // the following message will be received because
         // everything you defined earlier for this connection now exists
-        exchange.send("Test2");
+        exchange.publish("Test2");
     });
 
 ##### Javascript Example
@@ -68,7 +69,7 @@ sure that the queue is connected to the exchange before you send a message to th
 
     var connection = new Amqp.Connection("amqp://localhost");
     var exchange = connection.declareExchange("ExchangeName");
-    var queue = connection.bind("QueueName");
+    var queue = connection.declareQueue("QueueName");
     queue.bind(exchange);
     queue.startConsumer(function (message) {
         console.log("Message received: " + message);
@@ -76,12 +77,12 @@ sure that the queue is connected to the exchange before you send a message to th
 
     // it is possible that the following message is not received because
     // it can be sent before the queue, binding or consumer exist
-    exchange.send("Test");
+    exchange.publish("Test");
 
     connection.completeConfiguration().then(function () {
         // the following message will be received because
         // everything you defined earlier for this connection now exists
-        exchange.send("Test2");
+        exchange.publish("Test2");
     });
 
 
@@ -89,11 +90,13 @@ sure that the queue is connected to the exchange before you send a message to th
 
 When the library detects that the connection with the AMQP server is lost, it tries to automatically reconnect to the server.
 
-This is still an experimental feature and has not been thoroughly tested.
-
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 0.10.4
+ - added amqp-ts examples for the [RabbitMQ tutorials](https://www.rabbitmq.com/getstarted.html)
+ - fixed a bug in the queue.rpc
+ - fixed documentation errors
 
 ### version 0.10.3
  - Moved the documentation to the wiki,only the 'Overview', 'What's new' and 'Roadmap' stay in the readme.md for npmjs and GitHub.

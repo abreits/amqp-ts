@@ -534,20 +534,29 @@ export class Queue {
 
   rpc(requestParameters: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      var consumerTag;
-      this._channel.consume(DIRECT_REPLY_TO_QUEUE, (msg) => {
-        this._channel.cancel(consumerTag);
-        resolve(Queue._unpackMessageContent(msg));
-      }, {noAck: true}, (err, ok) => {
-        /* istanbul ignore if */
-        if (err) {
-          reject(new Error("amqp-ts: Queue.rpc error: " + err.message));
-        } else {
-          // send the rpc request
-          consumerTag = ok.consumerTag;
-          this.publish(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
-        }
-      });
+      var processRpc = () => {
+        var consumerTag;
+        this._channel.consume(DIRECT_REPLY_TO_QUEUE, (msg) => {
+          this._channel.cancel(consumerTag);
+          resolve(Queue._unpackMessageContent(msg));
+        }, {noAck: true}, (err, ok) => {
+          /* istanbul ignore if */
+          if (err) {
+            reject(new Error("amqp-ts: Queue.rpc error: " + err.message));
+          } else {
+            // send the rpc request
+            consumerTag = ok.consumerTag;
+            this.publish(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
+          }
+        });
+      };
+
+      // execute sync when possible
+      if (this.initialized.isFulfilled()) {
+        processRpc();
+      } else {
+        this.initialized.then(processRpc);
+      }
     });
   }
 
