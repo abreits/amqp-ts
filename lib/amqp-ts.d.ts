@@ -99,3 +99,8 @@ export class Queue {
     bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
     unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
 }
+
+/**
+ * winston Logger instance
+ */
+export var log;

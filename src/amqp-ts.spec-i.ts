@@ -2,7 +2,6 @@
  * Integration tests for AmqpSimple
  * Created by Ab on 2015-10-21.
  */
-import * as winston from "winston";
 import * as Chai from "chai";
 var expect = Chai.expect;
 
@@ -17,7 +16,7 @@ var UnitTestLongTimeout = process.env.AMQPTEST_LONG_TIMEOUT || 60000;
 var LogLevel = process.env.AMQPTEST_LOGLEVEL || "warn";
 
 // set logging level
-winston.level = LogLevel;
+Amqp.log.transports.console.level = LogLevel;
 
 // needed for server restart tests
 var os = require("os");

@@ -1,5 +1,5 @@
 //var amqp = require('amqp-ts'); // normal use
-var amqp = require('../../../lib/amqp-ts'); // for use inside this package
+var amqp = require('../../lib/amqp-ts'); // for use inside this package
 
 var args = process.argv.slice(2);
 

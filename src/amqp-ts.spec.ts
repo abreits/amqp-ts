@@ -2,7 +2,6 @@
  * Tests for AmqpSimple
  * Created by Ab on 2015-09-16.
  */
-import * as winston from "winston";
 import * as Chai from "chai";
 var expect = Chai.expect;
 
@@ -15,12 +14,12 @@ import * as Amqp from "../lib/amqp-ts";
 // define test defaults
 var ConnectionUrl = process.env.AMQPTEST_CONNECTION_URL || "amqp://localhost";
 var UnitTestTimeout = process.env.AMQPTEST_TIMEOUT || 1000;
-var LogLevel = process.env.AMQPTEST_LOGLEVEL || "warn";
+var LogLevel = process.env.AMQPTEST_LOGLEVEL || "error";
 var testExchangeNamePrefix = process.env.AMQPTEST_EXCHANGE_PREFIX || "TestExchange_";
 var testQueueNamePrefix = process.env.AMQPTEST_QUEUE_PREFIX || "TestQueue_";
 
 // set logging level
-winston.level = LogLevel;
+Amqp.log.transports.console.level = LogLevel;
 
 /* istanbul ignore next */
 describe("Test AmqpSimple module", function() {
