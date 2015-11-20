@@ -95,6 +95,11 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+
+### version 0.11.0
+ - revised amqp-ts logging, see [Logging](https://github.com/abreits/amqp-ts/wiki/Logging) in the wiki for more details
+ - fixed bug in tutorials library reference
+
 ### version 0.10.4
  - added amqp-ts examples for the [RabbitMQ tutorials](https://www.rabbitmq.com/getstarted.html)
  - fixed a bug in the queue.rpc
@@ -144,5 +149,3 @@ Roadmap    <a name="roadmap"></a>
 The roadmap section describes things that I want to add or change in the (hopefully near) future.
 
  - Better source code documentation, maybe even use jsdoc or tsdoc to generate the api documentation
- - Improve the logging facilities
- - Add amqp-ts versions of the [RabbitMQ tutorial](https://www.rabbitmq.com/getstarted.html) examples
