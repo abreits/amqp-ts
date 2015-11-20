@@ -20,7 +20,7 @@ Amqp-ts is a library for nodejs that simplifies communication with AMQP message 
 - [High level non opinioned library], no need to worry about channels etc.
 - ['Lazy' initialization](#initialization), async AMQP dependencies are resolved automatically
 - [Automatic reconnection](#reconnect), when the connection with the AMQP server fails, the whole connection and configuration is rebuilt automatically
-- Written in typescript, it is compatible with the Typescript 1.6 module type definition resulution for node.js.
+- Written in typescript, it is compatible with the Typescript 1.6 module type definition resolution for node.js.
 
 ##### Current status
 
