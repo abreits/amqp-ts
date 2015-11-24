@@ -235,11 +235,19 @@ export class Connection {
   }
 
   declareExchange(name: string, type?: string, options?: Exchange.DeclarationOptions): Exchange {
-    return new Exchange(this, name, type, options);
+    var exchange = this._exchanges[name];
+    if (exchange === undefined) {
+      exchange = new Exchange(this, name, type, options);
+    }
+    return exchange;
   }
 
   declareQueue(name: string, options?: Queue.DeclarationOptions): Queue {
-    return new Queue(this, name, options);
+    var queue = this._queues[name];
+    if (queue === undefined) {
+      queue = new Queue(this, name, options);
+    }
+    return queue;
   }
 }
 export namespace Connection {

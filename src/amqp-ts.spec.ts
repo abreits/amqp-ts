@@ -143,7 +143,7 @@ describe("Test AmqpSimple module", function() {
       });
     });
 
-    it("should create a Queue, send a simple string message and receive the raw message", function (done) {
+    it("should create a Queue, send a simple string message and receive the raw message", (done) => {
       // initialize
       var connection = getAmqpConnection();
 
@@ -163,6 +163,42 @@ describe("Test AmqpSimple module", function() {
 
       connection.completeConfiguration().then(() => {
         queue.publish("Test");
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should return the same Queue instance after calling connection.declareQueue multiple times", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queueName = nextQueueName();
+      var queue1 = connection.declareQueue(queueName);
+      var queue2 = connection.declareQueue(queueName);
+
+      expect(queue1).equal(queue2);
+
+      connection.completeConfiguration().then(() => {
+        cleanup(connection, done);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should return the same Exchange instance after calling connection.declareExchange multiple times", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchangeName = nextExchangeName();
+      var exchange1 = connection.declareQueue(exchangeName);
+      var exchange2 = connection.declareQueue(exchangeName);
+
+      expect(exchange2).equal(exchange2);
+
+      connection.completeConfiguration().then(() => {
+        cleanup(connection, done);
       }, (err) => { // failed to configure the defined topology
         done(err);
       });

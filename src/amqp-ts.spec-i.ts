@@ -16,7 +16,8 @@ var UnitTestLongTimeout = process.env.AMQPTEST_LONG_TIMEOUT || 60000;
 var LogLevel = process.env.AMQPTEST_LOGLEVEL || "warn";
 
 // set logging level
-Amqp.log.transports.console.level = LogLevel;
+var winston = Amqp.log;
+winston.transports.console.level = LogLevel;
 
 // needed for server restart tests
 var os = require("os");
