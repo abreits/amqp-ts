@@ -63,9 +63,9 @@ describe("AMQP Connection class automatic reconnection", function() {
 
     // test code
     var queue = connection.declareQueue("TestQueue");
-    queue.startConsumer((message) => {
+    queue.activateConsumer((message) => {
       try {
-        expect(message).equals("Test");
+        expect(message.getContent()).equals("Test");
         cleanup(connection, done);
       } catch (err) {
         cleanup(connection, done, err);
@@ -73,7 +73,8 @@ describe("AMQP Connection class automatic reconnection", function() {
     }).then(() => {
       restartAmqpServer();
       setTimeout(() => {
-        queue.publish("Test");
+        var msg = new Amqp.Message("Test");
+        queue.send(msg);
       }, 1000);
     }).catch((err) => {
       console.log("Consumer intialization FAILED!!!");
@@ -91,9 +92,9 @@ describe("AMQP Connection class automatic reconnection", function() {
     var queue = connection.declareQueue("TestQueue");
     exchange2.bind(exchange1);
     queue.bind(exchange2);
-    queue.startConsumer((message) => {
+    queue.activateConsumer((message) => {
       try {
-        expect(message).equals("Test");
+        expect(message.getContent()).equals("Test");
         cleanup(connection, done);
       } catch (err) {
         cleanup(connection, done, err);
@@ -101,7 +102,8 @@ describe("AMQP Connection class automatic reconnection", function() {
     }).then(() => {
       restartAmqpServer();
       setTimeout(() => {
-        exchange1.publish("Test");
+        var msg = new Amqp.Message("Test");
+        queue.send(msg);
       }, 1000);
     }).catch((err) => {
       console.log("Consumer intialization FAILED!!!");

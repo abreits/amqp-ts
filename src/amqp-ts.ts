@@ -249,12 +249,139 @@ export class Connection {
     }
     return queue;
   }
+
+  declareTopology(topology: Connection.Topology): Promise<any> {
+    var promises = [];
+    var i: number;
+    var len: number;
+
+    for (i = 0, len = topology.exchanges.length; i < len; i++) {
+      var exchange = topology.exchanges[i];
+      promises.push(this.declareExchange(exchange.name, exchange.type, exchange.options).initialized);
+    }
+    for (i = 0, len = topology.queues.length; i < len; i++) {
+      var queue = topology.queues[i];
+      promises.push(this.declareQueue(queue.name, queue.options).initialized);
+    }
+    for (i = 0, len = topology.bindings.length; i < len; i++) {
+      var binding = topology.bindings[i];
+      var source = this.declareExchange(binding.source);
+      var destination;
+      if (binding.exchange !== undefined) {
+        destination = this.declareExchange(binding.exchange);
+      } else {
+        destination = this.declareQueue(binding.queue);
+      }
+      promises.push(source.bind(destination, binding.pattern, binding.args));
+    }
+    return Promise.all(promises);
+  }
 }
 export namespace Connection {
   "use strict";
   export interface ReconnectStrategy {
-      retries: number; // number of retries, 0 is forever
-      interval: number; // retry interval in ms
+    retries: number; // number of retries, 0 is forever
+    interval: number; // retry interval in ms
+  }
+  export interface Topology {
+    exchanges: {name: string, type?: string, options?: any}[];
+    queues: {name: string, options?: any}[];
+    bindings: {source: string, queue?: string, exchange?: string, pattern: string, args: any}[];
+  }
+}
+
+
+//----------------------------------------------------------------------------------------------------
+// Message class
+//----------------------------------------------------------------------------------------------------
+export class Message {
+  content: Buffer;
+  fields: any;
+  properties: any;
+
+  _channel: AmqpLib.Channel; // for received messages only: the channel it has been received on
+  _message: AmqpLib.Message; // received messages only: original amqplib message
+
+  constructor (content?: any, options: any = {}) {
+    this.properties = options;
+    if (content !== undefined) {
+      this.setContent(content);
+    }
+  }
+
+  setContent(content: any) {
+    if (typeof content === "string") {
+      this.content = new Buffer(content);
+    } else if (!(content instanceof Buffer)) {
+      this.content = new Buffer(JSON.stringify(content));
+      this.properties.contentType = "application/json";
+    } else {
+      this.content = content;
+    }
+  }
+
+  getContent(): any {
+    var content = this.content.toString();
+    if (this.properties.contentType === "application/json") {
+      content = JSON.parse(content);
+    }
+    return content;
+  }
+
+  sendTo(destination: Exchange | Queue, routingKey: string = "") {
+    // inline function to send the message
+    var sendMessage = () => {
+      try {
+          destination._channel.publish(exchange, routingKey, this.content, this.properties);
+      } catch (err) {
+        amqpts_log.log("debug",  "Publish error: " + err.message, {module: "amqp-ts"});
+        var destinationName = destination._name;
+        var connection = destination._connection;
+        amqpts_log.log("debug", "Try to rebuild connection, before Call.", {module: "amqp-ts"});
+        connection._rebuildAll(err).then(() => {
+          amqpts_log.log("debug", "Retransmitting message.", {module: "amqp-ts"});
+          if (destination instanceof Queue) {
+            connection._queues[destinationName].publish(this.content, this.properties);
+          } else {
+            connection._exchanges[destinationName].publish(this.content, routingKey, this.properties);
+          }
+
+        });
+      }
+    };
+
+    var exchange;
+    if (destination instanceof Queue) {
+      exchange = "";
+      routingKey = destination._name;
+    } else {
+      exchange = destination._name;
+    }
+
+    // execute sync when possible
+    if (destination.initialized.isFulfilled()) {
+      sendMessage();
+    } else {
+      (<Promise <any>>destination.initialized).then(sendMessage);
+    }
+  }
+
+  ack(allUpTo?: boolean) {
+    if (this._channel !== undefined) {
+      this._channel.ack(this._message, allUpTo);
+    }
+  }
+
+  nack(requeue?: boolean) {
+    if (this._channel !== undefined) {
+      this._channel.nack(this._message, requeue);
+    }
+  }
+
+  reject(requeue?: boolean) {
+    if (this._channel !== undefined) {
+      this._channel.reject(this._message, requeue);
+    }
   }
 }
 
@@ -305,6 +432,9 @@ export class Exchange {
     this._connection._exchanges[this._name] = this;
   }
 
+  /**
+   * deprecated, use 'exchange.send(message: Message)' instead
+   */
   publish(content: any, routingKey = "", options: any = {}): void {
     if (typeof content === "string") {
       content = new Buffer(content);
@@ -327,12 +457,17 @@ export class Exchange {
     });
   }
 
+  send(message: Message, routingKey = "") {
+    message.sendTo(this, routingKey);
+  }
+
   rpc(requestParameters: any, routingKey = ""): Promise<any> {
     return new Promise((resolve, reject) => {
       var consumerTag;
       this._channel.consume(DIRECT_REPLY_TO_QUEUE, (msg) => {
         this._channel.cancel(consumerTag);
-        resolve(Queue._unpackMessageContent(msg));
+        var resultMessage = new Message(msg.content, msg.properties);
+        resolve(resultMessage.getContent());
       }, {noAck: true}, (err, ok) => {
         /* istanbul ignore if */
         if (err) {
@@ -340,7 +475,8 @@ export class Exchange {
         } else {
           // send the rpc request
           consumerTag = ok.consumerTag;
-          this.publish(requestParameters, routingKey, {replyTo: DIRECT_REPLY_TO_QUEUE});
+          var callMessage = new Message(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
+          callMessage.sendTo(this, routingKey);
         }
       });
     });
@@ -408,6 +544,9 @@ export class Exchange {
     return this._name + "." + ApplicationName + "." + os.hostname() + "." + process.pid;
   }
 
+  /**
+   * deprecated, use 'exchange.activateConsumer(...)' instead
+   */
   startConsumer(onMessage: (msg: any) => any, options?: Queue.StartConsumerOptions): Promise<any> {
     var queueName = this.consumerQueueName();
     if (this._connection._queues[queueName]) {
@@ -416,11 +555,30 @@ export class Exchange {
       });
     } else {
       var promises = [];
-      var queue = new Queue(this._connection, queueName, {durable: false});
+      var queue = this._connection.declareQueue(queueName, {durable: false});
       promises.push(queue.initialized);
       var binding = queue.bind(this);
       promises.push(binding);
       var consumer = queue.startConsumer(onMessage, options);
+      promises.push(consumer);
+
+      return Promise.all(promises);
+    }
+  }
+
+  activateConsumer(onMessage: (msg: Message) => any): Promise<any> {
+    var queueName = this.consumerQueueName();
+    if (this._connection._queues[queueName]) {
+      return new Promise<void>((_, reject) => {
+        reject(new Error("amqp-ts Exchange.activateConsumer error: consumer already defined"));
+      });
+    } else {
+      var promises = [];
+      var queue = this._connection.declareQueue(queueName, {durable: false});
+      promises.push(queue.initialized);
+      var binding = queue.bind(this);
+      promises.push(binding);
+      var consumer = queue.activateConsumer(onMessage);
       promises.push(consumer);
 
       return Promise.all(promises);
@@ -471,6 +629,7 @@ export class Queue {
   _options: Queue.DeclarationOptions;
 
   _consumer: (msg: any, channel?: AmqpLib.Channel) => any;
+  _isStartConsumer: boolean;
   _rawConsumer: boolean;
   _consumerOptions: Queue.StartConsumerOptions;
   _consumerTag: string;
@@ -527,6 +686,9 @@ export class Queue {
     return content;
   }
 
+  /**
+   * deprecated, use 'queue.send(message: Message)' instead
+   */
   publish(content: any, options: any = {}) {
     // inline function to send the message
     var sendMessage = () => {
@@ -551,6 +713,10 @@ export class Queue {
     } else {
       this.initialized.then(sendMessage);
     }
+  }
+
+  send(message: Message, routingKey = "") {
+    message.sendTo(this, routingKey);
   }
 
   rpc(requestParameters: any): Promise<any> {
@@ -581,6 +747,9 @@ export class Queue {
     });
   }
 
+  /**
+   * deprecated, use 'queue.activateConsumer(...)' instead
+   */
   startConsumer( onMessage: (msg: any, channel?: AmqpLib.Channel) => any,
                  options: Queue.StartConsumerOptions = {})
                : Promise<Queue.StartConsumerResult> {
@@ -590,8 +759,25 @@ export class Queue {
       });
     }
 
+    this._isStartConsumer = true;
     this._rawConsumer = (options.rawMessage === true);
     delete options.rawMessage; // remove to avoid possible problems with amqplib
+    this._consumerOptions = options;
+    this._consumer = onMessage;
+    this._initializeConsumer();
+
+    return this._consumerInitialized;
+  }
+
+    activateConsumer( onMessage: (msg: Message) => any,
+                    options: Queue.StartConsumerOptions = {})
+                  : Promise<Queue.StartConsumerResult> {
+    if (this._consumerInitialized) {
+      return new Promise<Queue.StartConsumerResult>((_, reject) => {
+        reject(new Error("amqp-ts Queue.activateConsumer error: consumer already defined"));
+      });
+    }
+
     this._consumerOptions = options;
     this._consumer = onMessage;
     this._initializeConsumer();
@@ -633,9 +819,25 @@ export class Queue {
       }
     };
 
+    var activateConsumerWrapper = (msg: AmqpLib.Message) => {
+      try {
+        var message = new Message(msg.content, msg.properties);
+        message.fields = msg.fields;
+        message._message = msg;
+        message._channel = this._channel;
+        this._consumer(message);
+      } catch (err) {
+        /* istanbul ignore next */
+        amqpts_log.log("error", "Queue.onMessage consumer function returned error: " + err.message, {module: "amqp-ts"});
+      }
+    };
+
     this._consumerInitialized = new Promise<Queue.StartConsumerResult>((resolve, reject) => {
       this.initialized.then(() => {
-        var consumerFunction = this._rawConsumer ? rawMsgConsumer : processedMsgConsumer;
+        var consumerFunction = activateConsumerWrapper;
+        if (this._isStartConsumer) {
+          consumerFunction = this._rawConsumer ? rawMsgConsumer : processedMsgConsumer;
+        }
         this._channel.consume(this._name, consumerFunction, <AmqpLib.Options.Consume>this._consumerOptions, (err, ok) => {
           /* istanbul ignore if */
           if (err) {

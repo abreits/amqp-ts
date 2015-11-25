@@ -88,12 +88,7 @@ describe("Test AmqpSimple module", function() {
     });
   });
 
-  describe("AMQP usage", function () {
-    /**
-     * normal practice is to test each feature isolated.
-     * This is however not very practical in this situation, because we would have to test the same features over and over
-     * We will however try to identify test failures as specific as possible
-     */
+  describe("AMQP Deprecated usage tests", function () {
     it("should create a Queue and send and receive simple string messages", function (done) {
       // initialize
       var connection = getAmqpConnection();
@@ -117,6 +112,7 @@ describe("Test AmqpSimple module", function() {
       });
     });
 
+
     it("should create a Queue and send and receive simple string objects", (done) => {
       // initialize
       var connection = getAmqpConnection();
@@ -138,6 +134,32 @@ describe("Test AmqpSimple module", function() {
 
       connection.completeConfiguration().then(() => {
         queue.publish(testObj);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+
+    it("should create a Queue, send a simple string message and receive the raw message", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+      var rawConsumer = (message: AmqpLib.Message, channel: AmqpLib.Channel) => {
+        try {
+          expect(message.content.toString()).equals("Test");
+          channel.ack(message);
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      };
+
+      queue.startConsumer(rawConsumer, {rawMessage: true});
+
+      connection.completeConfiguration().then(() => {
+        queue.publish("Test");
       }, (err) => { // failed to configure the defined topology
         done(err);
       });
@@ -168,144 +190,6 @@ describe("Test AmqpSimple module", function() {
       });
     });
 
-    it("should return the same Queue instance after calling connection.declareQueue multiple times", (done) => {
-      // initialize
-      var connection = getAmqpConnection();
-
-      // test code
-      var queueName = nextQueueName();
-      var queue1 = connection.declareQueue(queueName);
-      var queue2 = connection.declareQueue(queueName);
-
-      expect(queue1).equal(queue2);
-
-      connection.completeConfiguration().then(() => {
-        cleanup(connection, done);
-      }, (err) => { // failed to configure the defined topology
-        done(err);
-      });
-    });
-
-    it("should return the same Exchange instance after calling connection.declareExchange multiple times", (done) => {
-      // initialize
-      var connection = getAmqpConnection();
-
-      // test code
-      var exchangeName = nextExchangeName();
-      var exchange1 = connection.declareQueue(exchangeName);
-      var exchange2 = connection.declareQueue(exchangeName);
-
-      expect(exchange2).equal(exchange2);
-
-      connection.completeConfiguration().then(() => {
-        cleanup(connection, done);
-      }, (err) => { // failed to configure the defined topology
-        done(err);
-      });
-    });
-
-    it("should create an Exchange, Queue and binding and send and receive simple string messages", (done) => {
-      // initialize
-      var connection = getAmqpConnection();
-
-      // test code
-      var exchange = connection.declareExchange(nextExchangeName());
-      var queue = connection.declareQueue(nextQueueName());
-      queue.bind(exchange);
-      queue.startConsumer((message) => {
-        try {
-          expect(message).equals("Test");
-          cleanup(connection, done);
-        } catch (err) {
-          cleanup(connection, done, err);
-        }
-
-      });
-
-      connection.completeConfiguration().then(() => {
-        exchange.publish("Test");
-      }, (err) => { // failed to configure the defined topology
-        done(err);
-      });
-    });
-
-    it("should create an Exchange, Queue and binding and send and receive objects", (done) => {
-      // initialize
-      var connection = getAmqpConnection();
-
-      // test code
-      var exchange = connection.declareExchange(nextExchangeName());
-      var queue = connection.declareQueue(nextQueueName());
-      var testObj = {
-        text: "Test"
-      };
-
-      queue.bind(exchange);
-      queue.startConsumer((message) => {
-        try {
-          expect(message).eql(testObj);
-          cleanup(connection, done);
-        } catch (err) {
-          cleanup(connection, done, err);
-        }
-      });
-
-      connection.completeConfiguration().then(() => {
-        exchange.publish(testObj);
-      }, (err) => { // failed to configure the defined topology
-        done(err);
-      });
-    });
-
-    it("should create an Exchange and send and receive simple string messages", (done) => {
-      // initialize
-      var connection = getAmqpConnection();
-
-      // test code
-      var exchange = connection.declareExchange(nextExchangeName());
-      exchange.startConsumer((message) => {
-        try {
-          expect(message).equals("Test");
-          cleanup(connection, done);
-        } catch (err) {
-          cleanup(connection, done, err);
-        }
-      });
-
-      connection.completeConfiguration().then(() => {
-        exchange.publish("Test");
-      }, (err) => { // failed to configure the defined topology
-        done(err);
-      });
-    });
-
-    it("should bind Exchanges", (done) => {
-      // initialize
-      var connection = getAmqpConnection();
-
-      // test code
-      var exchange1 = connection.declareExchange(nextExchangeName());
-      var exchange2 = connection.declareExchange(nextExchangeName());
-      var queue = connection.declareQueue(nextQueueName());
-
-      exchange2.bind(exchange1);
-      queue.bind(exchange2);
-      queue.startConsumer((message) => {
-        try {
-          expect(message).equals("Test");
-          cleanup(connection, done);
-        } catch (err) {
-          cleanup(connection, done, err);
-        }
-      });
-
-      connection.completeConfiguration().then(() => {
-        exchange1.publish("Test");
-      }, (err) => { // failed to configure the defined topology
-        done(err);
-      });
-    });
-
     it("should reconnect when sending a message to an Exchange after a broken connection", (done) => {
       // initialize
       var connection = getAmqpConnection();
@@ -315,7 +199,7 @@ describe("Test AmqpSimple module", function() {
       var exchange2 = connection.declareExchange(nextExchangeName());
       exchange2.bind(exchange1);
       var queue = connection.declareQueue(nextQueueName());
-      queue.bind(exchange2);
+      queue.bind(exchange1);
       queue.startConsumer((message) => {
         try {
           expect(message).equals("Test");
@@ -335,7 +219,7 @@ describe("Test AmqpSimple module", function() {
             done(err);
           } else {
             // it should auto reconnect and send the message
-            exchange1.publish("Test");
+            queue.publish("Test");
           }
         });
       }, (err) => { // failed to configure the defined topology
@@ -375,68 +259,6 @@ describe("Test AmqpSimple module", function() {
             queue.publish("Test");
           }
         });
-      }, (err) => { // failed to configure the defined topology
-        done(err);
-      });
-    });
-
-    it("should unbind Exchanges and Queues", (done) => {
-      // initialize
-      var connection = getAmqpConnection();
-
-      // test code
-      var exchange1 = connection.declareExchange(nextExchangeName());
-      var exchange2 = connection.declareExchange(nextExchangeName());
-      var queue = connection.declareQueue(nextQueueName());
-
-      exchange2.bind(exchange1);
-      queue.bind(exchange2);
-      queue.startConsumer((message) => {
-        try {
-          expect(message).equals("Test");
-          exchange2.unbind(exchange1).then(() => {
-            return queue.unbind(exchange2);
-          }).then(() => {
-            cleanup(connection, done);
-          });
-        } catch (err) {
-          cleanup(connection, done, err);
-        }
-      });
-
-      connection.completeConfiguration().then(() => {
-        exchange1.publish("Test");
-      }, (err) => { // failed to configure the defined topology
-        done(err);
-      });
-    });
-
-    it("should delete Exchanges and Queues", (done) => {
-      // initialize
-      var connection = getAmqpConnection();
-
-      // test code
-      var exchange1 = connection.declareExchange(nextExchangeName());
-      var exchange2 = connection.declareExchange(nextExchangeName());
-      var queue = connection.declareQueue(nextQueueName());
-
-      exchange2.bind(exchange1);
-      queue.bind(exchange2);
-      queue.startConsumer((message) => {
-        try {
-          expect(message).equals("Test");
-          exchange2.delete().then(() => {
-            return queue.delete();
-          }).then(() => {
-            cleanup(connection, done);
-          });
-        } catch (err) {
-          cleanup(connection, done, err);
-        }
-      });
-
-      connection.completeConfiguration().then(() => {
-        exchange1.publish("Test");
       }, (err) => { // failed to configure the defined topology
         done(err);
       });
@@ -530,6 +352,512 @@ describe("Test AmqpSimple module", function() {
         cleanup(connection, done);
       });
     });
+  });
+
+  describe("AMQP usage", function () {
+    /**
+     * normal practice is to test each feature isolated.
+     * This is however not very practical in this situation, because we would have to test the same features over and over
+     * We will however try to identify test failures as specific as possible
+     */
+    it("should create a Queue and send and receive a simple text Message", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, {noAck: true});
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        queue.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should create a Queue and send and receive a simple text Message with ack", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          message.ack();
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      });
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        queue.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should create a Queue and send and receive a simple text Message with nack", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+      var nacked = false;
+
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          if (nacked) {
+            message.ack();
+            cleanup(connection, done);
+          } else {
+            message.nack();
+            nacked = true;
+          }
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      });
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        queue.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should create a Queue and send and receive a simple text Message with reject", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          message.reject(false);
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      });
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        queue.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should create a Queue and send and receive a Message with a structure", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+      var testObj = {
+        text: "Test"
+      };
+
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).eql(testObj);
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, {noAck: true});
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message(testObj);
+        queue.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+
+    it("should return the same Queue instance after calling connection.declareQueue multiple times", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queueName = nextQueueName();
+      var queue1 = connection.declareQueue(queueName);
+      var queue2 = connection.declareQueue(queueName);
+
+      expect(queue1).equal(queue2);
+
+      connection.completeConfiguration().then(() => {
+        cleanup(connection, done);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should return the same Exchange instance after calling connection.declareExchange multiple times", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchangeName = nextExchangeName();
+      var exchange1 = connection.declareQueue(exchangeName);
+      var exchange2 = connection.declareQueue(exchangeName);
+
+      expect(exchange2).equal(exchange2);
+
+      connection.completeConfiguration().then(() => {
+        cleanup(connection, done);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should create an Exchange, Queue and binding and send and receive a simple string Message", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange = connection.declareExchange(nextExchangeName());
+      var queue = connection.declareQueue(nextQueueName());
+      queue.bind(exchange);
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, {noAck: true});
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        exchange.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should create an Exchange, Queue and binding and send and receive a Message with structures", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange = connection.declareExchange(nextExchangeName());
+      var queue = connection.declareQueue(nextQueueName());
+      var testObj = {
+        text: "Test"
+      };
+
+      queue.bind(exchange);
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).eql(testObj);
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, {noAck: true});
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message(testObj);
+        exchange.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should create an Exchange and send and receive a simple string Message", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange = connection.declareExchange(nextExchangeName());
+      exchange.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, {noAck: true});
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        exchange.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should bind Exchanges", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange1 = connection.declareExchange(nextExchangeName());
+      var exchange2 = connection.declareExchange(nextExchangeName());
+      var queue = connection.declareQueue(nextQueueName());
+
+      exchange2.bind(exchange1);
+      queue.bind(exchange2);
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, {noAck: true});
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        exchange1.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should reconnect when sending a Message to an Exchange after a broken connection", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange1 = connection.declareExchange(nextExchangeName());
+      var exchange2 = connection.declareExchange(nextExchangeName());
+      exchange2.bind(exchange1);
+      var queue = connection.declareQueue(nextQueueName());
+      queue.bind(exchange2);
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, {noAck: true}).catch((err) => {
+        console.log("Consumer intialization FAILED!!!");
+        done(err);
+      });
+
+      connection.completeConfiguration().then(() => {
+        // break connection
+        (<any>connection)._connection.close((err) => {
+          if (err) {
+            done(err);
+          } else {
+            // it should auto reconnect and send the message
+            var msg = new Amqp.Message("Test");
+            exchange1.send(msg);
+          }
+        });
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should reconnect when sending a message to a Queue after a broken connection", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, {noAck: true}).catch((err) => {
+        console.log("Consumer intialization FAILED!!!");
+        done(err);
+      });
+
+      connection.completeConfiguration().then(() => {
+        // break connection
+        (<any>connection)._connection.close((err) => {
+          if (err) {
+            done(err);
+          } else {
+            // it should auto reconnect and send the message
+            var msg = new Amqp.Message("Test");
+            queue.send(msg);
+          }
+        });
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should unbind Exchanges and Queues", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange1 = connection.declareExchange(nextExchangeName());
+      var exchange2 = connection.declareExchange(nextExchangeName());
+      var queue = connection.declareQueue(nextQueueName());
+
+      exchange2.bind(exchange1);
+      queue.bind(exchange2);
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          exchange2.unbind(exchange1).then(() => {
+            return queue.unbind(exchange2);
+          }).then(() => {
+            cleanup(connection, done);
+          });
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      });
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        queue.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should delete Exchanges and Queues", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange1 = connection.declareExchange(nextExchangeName());
+      var exchange2 = connection.declareExchange(nextExchangeName());
+      var queue = connection.declareQueue(nextQueueName());
+
+      exchange2.bind(exchange1);
+      queue.bind(exchange2);
+      queue.activateConsumer((message) => {
+        try {
+          expect(message.getContent()).equals("Test");
+          exchange2.delete().then(() => {
+            return queue.delete();
+          }).then(() => {
+            cleanup(connection, done);
+          });
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      });
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        queue.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should not start 2 consumers for the same queue", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange1 = connection.declareExchange(nextExchangeName());
+      var queue = connection.declareQueue(nextQueueName());
+
+      queue.bind(exchange1);
+      queue.activateConsumer((message) => {
+        cleanup(connection, done, new Error("Received unexpected message"));
+      });
+      queue.activateConsumer((message) => {
+        cleanup(connection, done, new Error("Received unexpected message"));
+      }).catch((err) => {
+        expect(err.message).equal("amqp-ts Queue.activateConsumer error: consumer already defined");
+        cleanup(connection, done);
+      });
+    });
+
+    it("should not start 2 consumers for the same exchange", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange1 = connection.declareExchange(nextExchangeName());
+
+      exchange1.activateConsumer((message) => {
+        cleanup(connection, done, new Error("Received unexpected message"));
+      });
+      exchange1.activateConsumer((message) => {
+        cleanup(connection, done, new Error("Received unexpected message"));
+      }).catch((err) => {
+        expect(err.message).equal("amqp-ts Exchange.activateConsumer error: consumer already defined");
+        cleanup(connection, done);
+      });
+    });
+
+    it("should stop an Exchange consumer", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange1 = connection.declareExchange(nextExchangeName());
+
+      exchange1.activateConsumer((message) => {
+        cleanup(connection, done, new Error("Received unexpected message"));
+      });
+      exchange1.stopConsumer().then(() => {
+        cleanup(connection, done);
+      });
+    });
+
+    it("should generate an error when stopping a non existing Exchange consumer", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange1 = connection.declareExchange(nextExchangeName());
+
+      exchange1.activateConsumer((message) => {
+        cleanup(connection, done, new Error("Received unexpected message"));
+      });
+      exchange1.stopConsumer().then(() => {
+        return exchange1.stopConsumer();
+      }).catch((err) => {
+        expect(err.message).equals("amqp-ts Exchange.cancelConsumer error: no consumer defined");
+        cleanup(connection, done);
+      });
+    });
+
+    it("should generate an error when stopping a non existing Queue consumer", (done) => {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+
+      queue.activateConsumer((message) => {
+        cleanup(connection, done, new Error("Received unexpected message"));
+      });
+      queue.stopConsumer().then(() => {
+        return queue.stopConsumer();
+      }).catch((err) => {
+        expect(err.message).equals("amqp-ts Queue.cancelConsumer error: no consumer defined");
+        cleanup(connection, done);
+      });
+    });
 
     it("should send a message to a queue before the queue is explicitely initialized", (done) => {
       // initialize
@@ -537,12 +865,13 @@ describe("Test AmqpSimple module", function() {
 
       // test code
       var queue = connection.declareQueue(nextQueueName());
+      var msg = new Amqp.Message("Test");
 
-      queue.publish("Test");
+      queue.send(msg);
 
-      queue.startConsumer((message) => {
+      queue.activateConsumer((message) => {
         try {
-          expect(message).equals("Test");
+          expect(message.getContent()).equals("Test");
           cleanup(connection, done);
         } catch (err) {
           cleanup(connection, done, err);
@@ -563,14 +892,15 @@ describe("Test AmqpSimple module", function() {
       exchange1.bind(exchange2, "*.test", {});
 
       connection.completeConfiguration().then(() => {
-        exchange2.publish("ParameterTest", "topic.test", {});
-        exchange1.publish("ParameterTest", "topic.test2", {});
-        queue.publish("ParameterTest", {});
+        var msg = new Amqp.Message("ParameterTest", {});
+        exchange2.send(msg, "topic.test");
+        exchange1.send(msg, "topic.test2");
+        queue.send(msg);
       });
 
-      queue.startConsumer((message) => {
+      queue.activateConsumer((message) => {
         try {
-          expect(message).equals("ParameterTest");
+          expect(message.getContent()).equals("ParameterTest");
           messagesReceived++;
           //expect three messages
           if (messagesReceived === 3) {
