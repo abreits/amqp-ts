@@ -95,6 +95,18 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 0.12.0
+ - added [Message class](https://github.com/abreits/amqp-ts/wiki/Message class)
+ - added [exchange.send](https://github.com/abreits/amqp-ts/wiki/Exchange class#send) and [queue.send](https://github.com/abreits/amqp-ts/wiki/Queue class#send).
+ - deprecated [exchange.publish](https://github.com/abreits/amqp-ts/wiki/Exchange class#publish) and [queue.publish](https://github.com/abreits/amqp-ts/wiki/Queue class#publish).
+ - added [exchange.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Exchange class#activateConsumer) and [queue.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Queue class#activateConsumer).
+ - deprecated [exchange.startConsumer](https://github.com/abreits/amqp-ts/wiki/Exchange class#startConsumer) and [queue.startConsumer](https://github.com/abreits/amqp-ts/wiki/Queue class#startConsumer).
+ - changed [connection.declareExchange](https://github.com/abreits/amqp-ts/wiki/Connection class#declareExchange)
+   and [connection.declareQueue](https://github.com/abreits/amqp-ts/wiki/Connection class#declareQueue)
+   to prevent duplicate declaration of the same exchange/queue
+ - added [connection.declareTopology](https://github.com/abreits/amqp-ts/wiki/Connection class#declareTopology)
+ - added support functions [getMessageContent] and [setMessageContent]
+ - fixed bug in integration test
 
 ### version 0.11.0
  - revised amqp-ts logging, see [Logging](https://github.com/abreits/amqp-ts/wiki/Logging) in the wiki for more details
