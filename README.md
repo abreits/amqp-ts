@@ -42,48 +42,54 @@ If you define an exchange and a queue and bind the queue to the exchange and wan
 sure that the queue is connected to the exchange before you send a message to the exchange you can call the `connection.completeConfiguration()` method and act on the promise it returns.
 
 ##### ES6/Typescript Example
+```TypeScript
+import * as Amqp from "amqp-ts";
 
-    import * as Amqp from "amqp-ts";
+var connection = new Amqp.Connection("amqp://localhost");
+var exchange = connection.declareExchange("ExchangeName");
+var queue = connection.declareQueue("QueueName");
+queue.bind(exchange);
+queue.activateConsumer((message) => {
+    console.log("Message received: " + message.getContent());
+}
 
-    var connection = new Amqp.Connection("amqp://localhost");
-    var exchange = connection.declareExchange("ExchangeName");
-    var queue = connection.declareQueue("QueueName");
-    queue.bind(exchange);
-    queue.startConsumer((message) => {
-        console.log("Message received: " + message);
-    }
+// it is possible that the following message is not received because
+// it can be sent before the queue, binding or consumer exist
+var msg = new Amqp.Message("Test");
+exchange.send(msg);
 
-    // it is possible that the following message is not received because
-    // it can be sent before the queue, binding or consumer exist
-    exchange.publish("Test");
-
-    connection.completeConfiguration().then(() => {
-        // the following message will be received because
-        // everything you defined earlier for this connection now exists
-        exchange.publish("Test2");
-    });
+connection.completeConfiguration().then(() => {
+    // the following message will be received because
+    // everything you defined earlier for this connection now exists
+    var msg2 = new Amqp.Message("Test2");
+    exchange.send(msg2);
+});
+```
 
 ##### Javascript Example
+```JavaScript
+var amqp = require("amqp-ts");
 
-    var Amqp = require("amqp-ts");
+var connection = new amqp.Connection("amqp://localhost");
+var exchange = connection.declareExchange("ExchangeName");
+var queue = connection.declareQueue("QueueName");
+queue.bind(exchange);
+queue.activateConsumer((message) => {
+    console.log("Message received: " + message.getContent());
+}
 
-    var connection = new Amqp.Connection("amqp://localhost");
-    var exchange = connection.declareExchange("ExchangeName");
-    var queue = connection.declareQueue("QueueName");
-    queue.bind(exchange);
-    queue.startConsumer(function (message) {
-        console.log("Message received: " + message);
-    }
+// it is possible that the following message is not received because
+// it can be sent before the queue, binding or consumer exist
+var msg = new amqp.Message("Test");
+exchange.send(msg);
 
-    // it is possible that the following message is not received because
-    // it can be sent before the queue, binding or consumer exist
-    exchange.publish("Test");
-
-    connection.completeConfiguration().then(function () {
-        // the following message will be received because
-        // everything you defined earlier for this connection now exists
-        exchange.publish("Test2");
-    });
+connection.completeConfiguration().then(() => {
+    // the following message will be received because
+    // everything you defined earlier for this connection now exists
+    var msg2 = new amqp.Message("Test2");
+    exchange.send(msg2);
+});
+```
 
 More examples can be found in the [tutorials directory](https://github.com/abreits/amqp-ts/tree/master/tutorials).
 
