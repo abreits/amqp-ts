@@ -10,8 +10,8 @@ var queue = connection.declareQueue('rpc_queue', {durable: false});
 // create an rpc consumer function for the queue, automatically returns the return value of the
 // consumer function to the replyTo queue, if it exists
 // this will keep running until the program is halted or is stopped with queue.stopConsumer()
-queue.startConsumer(function(message) {
-  var n = parseInt(message);
+queue.activateConsumer(function(message) {
+  var n = parseInt(message.getContent());
   console.log(' [.] fib(' + n + ')');
 
   // return fibonacci number

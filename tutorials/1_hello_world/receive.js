@@ -9,6 +9,6 @@ var queue = connection.declareQueue('hello', {durable: false});
 
 // create a consumer function for the queue
 // this will keep running until the program is halted or is stopped with queue.stopConsumer()
-queue.startConsumer(function(message) {
-  console.log('received message: ' + message);
-});
+queue.activateConsumer(function(message) {
+  console.log('received message: ' + message.getContent());
+}, {noAck: true});

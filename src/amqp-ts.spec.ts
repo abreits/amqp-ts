@@ -978,8 +978,8 @@ describe("Test AmqpSimple module", function() {
       // test code
       var queue = connection.declareQueue(nextQueueName());
 
-      queue.startConsumer((message) => {
-        return message.reply;
+      queue.activateConsumer((message) => {
+        return message.getContent().reply;
       });
 
       connection.completeConfiguration().then(function () {
@@ -1001,8 +1001,8 @@ describe("Test AmqpSimple module", function() {
       // test code
       var queue = connection.declareQueue(nextQueueName());
 
-      queue.startConsumer((message) => {
-        return message.reply;
+      queue.activateConsumer((message) => {
+        return message.getContent().reply;
       });
 
       queue.rpc({reply: "TestRpc"}).then((result) => {
@@ -1022,8 +1022,8 @@ describe("Test AmqpSimple module", function() {
       // test code
       var exchange = connection.declareExchange(nextExchangeName());
 
-      exchange.startConsumer((message) => {
-        return message.reply;
+      exchange.activateConsumer((message) => {
+        return message.getContent().reply;
       });
 
       connection.completeConfiguration().then(function () {

@@ -9,7 +9,8 @@ var queue = connection.declareQueue('hello', {durable: false});
 
 // send a message, it will automatically be sent after the connection and the queue declaration
 // have finished successfully
-queue.publish('Hello World!');
+var message = new amqp.Message('Hello World!')
+queue.send(message);
 
 // not exactly true, but the message will be sent shortly
 console.log(' [x] Sent \'Hello World!\'');

@@ -24,10 +24,9 @@ args.forEach(function(key) {
 });
 
 // create a consumer function for the queue
-// need a raw message to get the routingKey
 // this will keep running until the program is halted or is stopped with queue.stopConsumer()
-queue.startConsumer(function(rawMessage) {
-  var message = rawMessage.content.toString();
-  var routingKey = rawMessage.fields.routingKey;
-  console.log(' [x] ' + routingKey + ' : \'' + message + '\'');
+queue.activateConsumer(function(message) {
+  var content = message.content.toString();
+  var routingKey = message.fields.routingKey;
+  console.log(' [x] ' + routingKey + ' : \'' + content + '\'');
 }, {rawMessage: true, noAck: true});

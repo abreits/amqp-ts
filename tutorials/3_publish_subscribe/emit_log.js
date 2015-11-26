@@ -8,14 +8,14 @@ var connection = new amqp.Connection();
 var exchange = connection.declareExchange('logs', 'fanout', {durable: false});
 
 // get the message from the command line
-var message = process.argv.slice(2).join(' ') || 'Hello World!';
+var message = new amqp.Message(process.argv.slice(2).join(' ') || 'Hello World!');
 
 // send a message, it will automatically be sent after the connection and the queue declaration
 // have finished successfully
-exchange.publish(message);
+exchange.send(message);
 
 // not exactly true, but the message will be sent shortly
-console.log(' [x] Sent \'' + message + '\'');
+console.log(' [x] Sent \'' + message.getContent() + '\'');
 
 // after half a second close the connection
 setTimeout(function() {

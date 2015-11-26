@@ -154,8 +154,8 @@ export class Connection {
     }
     for (var bindingId in this._bindings) {
       var binding = this._bindings[bindingId];
-      amqpts_log.log("debug", "Re-initialize binding from '" + binding._sourceName + "' to '" +
-                           binding._destinationName + "'.", {module: "amqp-ts"});
+      amqpts_log.log("debug", "Re-initialize binding from '" + binding._source._name + "' to '" +
+                           binding._destination._name + "'.", {module: "amqp-ts"});
       binding._initialize();
     }
 
@@ -553,7 +553,7 @@ export class Exchange {
   /**
    * deprecated, use 'exchange.activateConsumer(...)' instead
    */
-  startConsumer(onMessage: (msg: any) => any, options?: Queue.StartConsumerOptions): Promise<any> {
+  startConsumer(onMessage: (msg: any, channel?: AmqpLib.Channel) => any, options?: Queue.StartConsumerOptions): Promise<any> {
     var queueName = this.consumerQueueName();
     if (this._connection._queues[queueName]) {
       return new Promise<void>((_, reject) => {
@@ -572,7 +572,7 @@ export class Exchange {
     }
   }
 
-  activateConsumer(onMessage: (msg: Message) => any): Promise<any> {
+  activateConsumer(onMessage: (msg: Message) => any, options?: Queue.ActivateConsumerOptions): Promise<any> {
     var queueName = this.consumerQueueName();
     if (this._connection._queues[queueName]) {
       return new Promise<void>((_, reject) => {
@@ -584,7 +584,7 @@ export class Exchange {
       promises.push(queue.initialized);
       var binding = queue.bind(this);
       promises.push(binding);
-      var consumer = queue.activateConsumer(onMessage);
+      var consumer = queue.activateConsumer(onMessage, options);
       promises.push(consumer);
 
       return Promise.all(promises);
@@ -775,8 +775,8 @@ export class Queue {
     return this._consumerInitialized;
   }
 
-    activateConsumer( onMessage: (msg: Message) => any,
-                    options: Queue.StartConsumerOptions = {})
+  activateConsumer( onMessage: (msg: Message) => any,
+                    options: Queue.ActivateConsumerOptions = {})
                   : Promise<Queue.StartConsumerResult> {
     if (this._consumerInitialized) {
       return new Promise<Queue.StartConsumerResult>((_, reject) => {
@@ -831,7 +831,13 @@ export class Queue {
         message.fields = msg.fields;
         message._message = msg;
         message._channel = this._channel;
-        this._consumer(message);
+        var result = this._consumer(message);
+        // check if there is a reply-to
+        if (msg.properties.replyTo) {
+          var options: any = {};
+          var response = Queue._packMessageContent(result, options);
+          this._channel.sendToQueue(msg.properties.replyTo, response, options);
+        }
       } catch (err) {
         /* istanbul ignore next */
         amqpts_log.log("error", "Queue.onMessage consumer function returned error: " + err.message, {module: "amqp-ts"});
@@ -952,6 +958,14 @@ export namespace Queue {
   }
   export interface StartConsumerOptions {
     rawMessage?: boolean;
+    consumerTag?: string;
+    noLocal?: boolean;
+    noAck?: boolean;
+    exclusive?: boolean;
+    priority?: number;
+    arguments?: Object;
+  }
+  export interface ActivateConsumerOptions {
     consumerTag?: string;
     noLocal?: boolean;
     noAck?: boolean;

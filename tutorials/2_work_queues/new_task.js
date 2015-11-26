@@ -8,11 +8,11 @@ var connection = new amqp.Connection();
 var queue = connection.declareQueue('task_queue', {durable: true});
 
 // get the message from the command line
-var message = process.argv.slice(2).join(' ') || 'Hello World!';
+var message = new amqp.Message(process.argv.slice(2).join(' ') || 'Hello World!', {persistent: true});
 
 // send a message, it will automatically be sent after the connection and the queue declaration
 // have finished successfully
-queue.publish(message, {persistent: true});
+queue.send(message);
 
 // not exactly true, but the message will be sent shortly
 console.log(' [x] Sent \'' + message + '\'');

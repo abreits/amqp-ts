@@ -9,15 +9,15 @@ var exchange = connection.declareExchange('direct_logs', 'direct', {durable: fal
 
 // get the severity and message from the command line
 var args = process.argv.slice(2);
-var message = args.slice(1).join(' ') || 'Hello World!';
+var message = new amqp.Message(args.slice(1).join(' ') || 'Hello World!');
 var severity = (args.length > 0) ? args[0] : 'info';
 
 // send a message, it will automatically be sent after the connection and the queue declaration
 // have finished successfully
-exchange.publish(message, severity);
+exchange.send(message, severity);
 
 // not exactly true, but the message will be sent shortly
-console.log(' [x] Sent ' + severity + '\'' + message + '\'');
+console.log(' [x] Sent ' + severity + ' \'' + message.getContent() + '\'');
 
 // after half a second close the connection
 setTimeout(function() {

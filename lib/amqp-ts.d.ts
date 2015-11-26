@@ -105,10 +105,15 @@ export declare namespace Queue {
         deadLetterExchange?: string;
         maxLength?: number;
     }
+    interface ActivateConsumerOptions {
+        consumerTag?: string;
+        noLocal?: boolean;
+        noAck?: boolean;
+        exclusive?: boolean;
+        priority?: number;
+        arguments?: Object;
+    }
     interface StartConsumerOptions {
-        /**
-         * deprecated! only used in deprecated startConsumer, not used in activateConsumer
-         */
         rawMessage?: boolean;
         consumerTag?: string;
         noLocal?: boolean;

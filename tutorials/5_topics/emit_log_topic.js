@@ -9,15 +9,15 @@ var exchange = connection.declareExchange('topic_logs', 'topic', {durable: false
 
 // get the topic key and message from the command line
 var args = process.argv.slice(2);
-var message = args.slice(1).join(' ') || 'Hello World!';
+var message = new amqp.Message(args.slice(1).join(' ') || 'Hello World!');
 var key = (args.length > 0) ? args[0] : 'anonymous.info';
 
 // send a message, it will automatically be sent after the connection and the queue declaration
 // have finished successfully
-exchange.publish(message, key);
+exchange.send(message, key);
 
 // not exactly true, but the message will be sent shortly
-console.log(' [x] Sent ' + key + ': \'' + message + '\'');
+console.log(' [x] Sent ' + key + ': \'' + message.getContent() + '\'');
 
 // after half a second close the connection
 setTimeout(function() {
