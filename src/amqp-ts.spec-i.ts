@@ -70,7 +70,7 @@ describe("AMQP Connection class automatic reconnection", function() {
       } catch (err) {
         cleanup(connection, done, err);
       }
-    }).then(() => {
+    }, {noAck: true}).then(() => {
       restartAmqpServer();
       setTimeout(() => {
         var msg = new Amqp.Message("Test");
@@ -99,7 +99,7 @@ describe("AMQP Connection class automatic reconnection", function() {
       } catch (err) {
         cleanup(connection, done, err);
       }
-    }).then(() => {
+    }, {noAck: true}).then(() => {
       restartAmqpServer();
       setTimeout(() => {
         var msg = new Amqp.Message("Test");

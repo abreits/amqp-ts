@@ -154,8 +154,8 @@ export class Connection {
     }
     for (var bindingId in this._bindings) {
       var binding = this._bindings[bindingId];
-      amqpts_log.log("debug", "Re-initialize binding from '" + binding._source._name + "' to '" +
-                           binding._destination._name + "'.", {module: "amqp-ts"});
+      amqpts_log.log("debug", "Re-initialize binding from '" + binding._sourceName + "' to '" +
+                           binding._destinationName + "'.", {module: "amqp-ts"});
       binding._initialize();
     }
 
@@ -255,24 +255,30 @@ export class Connection {
     var i: number;
     var len: number;
 
-    for (i = 0, len = topology.exchanges.length; i < len; i++) {
-      var exchange = topology.exchanges[i];
-      promises.push(this.declareExchange(exchange.name, exchange.type, exchange.options).initialized);
-    }
-    for (i = 0, len = topology.queues.length; i < len; i++) {
-      var queue = topology.queues[i];
-      promises.push(this.declareQueue(queue.name, queue.options).initialized);
-    }
-    for (i = 0, len = topology.bindings.length; i < len; i++) {
-      var binding = topology.bindings[i];
-      var source = this.declareExchange(binding.source);
-      var destination;
-      if (binding.exchange !== undefined) {
-        destination = this.declareExchange(binding.exchange);
-      } else {
-        destination = this.declareQueue(binding.queue);
+    if (topology.exchanges !== undefined) {
+      for (i = 0, len = topology.exchanges.length; i < len; i++) {
+        var exchange = topology.exchanges[i];
+        promises.push(this.declareExchange(exchange.name, exchange.type, exchange.options).initialized);
       }
-      promises.push(source.bind(destination, binding.pattern, binding.args));
+    }
+    if (topology.queues !== undefined) {
+      for (i = 0, len = topology.queues.length; i < len; i++) {
+        var queue = topology.queues[i];
+        promises.push(this.declareQueue(queue.name, queue.options).initialized);
+      }
+    }
+    if (topology.bindings !== undefined) {
+      for (i = 0, len = topology.bindings.length; i < len; i++) {
+        var binding = topology.bindings[i];
+        var source = this.declareExchange(binding.source);
+        var destination;
+        if (binding.exchange !== undefined) {
+          destination = this.declareExchange(binding.exchange);
+        } else {
+          destination = this.declareQueue(binding.queue);
+        }
+        promises.push(destination.bind(source, binding.pattern, binding.args));
+      }
     }
     return Promise.all(promises);
   }
@@ -286,7 +292,7 @@ export namespace Connection {
   export interface Topology {
     exchanges: {name: string, type?: string, options?: any}[];
     queues: {name: string, options?: any}[];
-    bindings: {source: string, queue?: string, exchange?: string, pattern: string, args: any}[];
+    bindings: {source: string, queue?: string, exchange?: string, pattern?: string, args?: any}[];
   }
 }
 
@@ -989,36 +995,41 @@ export class Binding {
 
   _initialize() {
     this.initialized = new Promise<Binding>((resolve, reject) => {
-      var promise = this._destination.initialized;
-      if (this._destination instanceof Queue) {
-        var queue = <Queue>this._destination;
-        queue.initialized.then(() => {
-          queue._channel.bindQueue(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
-            /* istanbul ignore if */
-            if (err) {
-              amqpts_log.log("error", "Failed to create queue binding.", {module: "amqp-ts"});
-              delete this._destination._connection._bindings[Binding.id(this._destination, this._source, this._pattern)];
-              reject(err);
-            } else {
-              resolve(this);
-            }
+        if (this._destination instanceof Queue) {
+          var queue = <Queue>this._destination;
+          queue.initialized.then(() => {
+            queue._channel.bindQueue(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
+              /* istanbul ignore if */
+              if (err) {
+                amqpts_log.log("error",
+                               "Failed to create queue binding (" +
+                                 this._source._name + "->" + this._destination._name + ")",
+                               {module: "amqp-ts"});
+                delete this._destination._connection._bindings[Binding.id(this._destination, this._source, this._pattern)];
+                reject(err);
+              } else {
+                resolve(this);
+              }
+            });
           });
-        });
-      } else {
-        var exchange = <Exchange>this._destination;
-        exchange.initialized.then(() => {
-          exchange._channel.bindExchange(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
-            /* istanbul ignore if */
-            if (err) {
-              amqpts_log.log("error", "Failed to create exchange binding.", {module: "amqp-ts"});
-              delete this._destination._connection._bindings[Binding.id(this._destination, this._source, this._pattern)];
-              reject(err);
-            } else {
-              resolve(this);
-            }
+        } else {
+          var exchange = <Exchange>this._destination;
+          exchange.initialized.then(() => {
+            exchange._channel.bindExchange(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
+              /* istanbul ignore if */
+              if (err) {
+                amqpts_log.log("error",
+                               "Failed to create exchange binding (" +
+                                 this._source._name + "->" + this._destination._name + ")",
+                               {module: "amqp-ts"});
+                delete this._destination._connection._bindings[Binding.id(this._destination, this._source, this._pattern)];
+                reject(err);
+              } else {
+                resolve(this);
+              }
+            });
           });
-        });
-      }
+        }
     });
   }
 

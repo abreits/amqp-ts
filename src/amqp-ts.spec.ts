@@ -27,12 +27,12 @@ describe("Test AmqpSimple module", function() {
 
   // create unique queues and exchanges for each test so they do not interfere with each other
   var testExchangeNumber = 0;
-  function nextExchangeName() {
+  function nextExchangeName(): string {
     testExchangeNumber++;
     return testExchangeNamePrefix + testExchangeNumber;
   }
   var testQueueNumber = 0;
-  function nextQueueName() {
+  function nextQueueName(): string {
     testQueueNumber++;
     return testQueueNamePrefix + testQueueNumber;
   }
@@ -728,7 +728,7 @@ describe("Test AmqpSimple module", function() {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      });
+      }, {noAck: true});
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message("Test");
@@ -760,7 +760,7 @@ describe("Test AmqpSimple module", function() {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      });
+      }, {noAck: true});
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message("Test");
@@ -784,7 +784,7 @@ describe("Test AmqpSimple module", function() {
       });
       queue.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      }).catch((err) => {
+      }, {noAck: true}).catch((err) => {
         expect(err.message).equal("amqp-ts Queue.activateConsumer error: consumer already defined");
         cleanup(connection, done);
       });
@@ -802,7 +802,7 @@ describe("Test AmqpSimple module", function() {
       });
       exchange1.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      }).catch((err) => {
+      }, {noAck: true}).catch((err) => {
         expect(err.message).equal("amqp-ts Exchange.activateConsumer error: consumer already defined");
         cleanup(connection, done);
       });
@@ -817,7 +817,7 @@ describe("Test AmqpSimple module", function() {
 
       exchange1.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      });
+      }, {noAck: true});
       exchange1.stopConsumer().then(() => {
         cleanup(connection, done);
       });
@@ -832,7 +832,7 @@ describe("Test AmqpSimple module", function() {
 
       exchange1.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      });
+      }, {noAck: true});
       exchange1.stopConsumer().then(() => {
         return exchange1.stopConsumer();
       }).catch((err) => {
@@ -850,7 +850,7 @@ describe("Test AmqpSimple module", function() {
 
       queue.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      });
+      }, {noAck: true});
       queue.stopConsumer().then(() => {
         return queue.stopConsumer();
       }).catch((err) => {
@@ -876,7 +876,7 @@ describe("Test AmqpSimple module", function() {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      });
+      }, {noAck: true});
     });
 
     it("should accept optional parameters", (done) => {
@@ -909,7 +909,7 @@ describe("Test AmqpSimple module", function() {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      });
+      }, {noAck: true});
     });
 
     it("should close an exchange and a queue", function (done) {
@@ -1035,6 +1035,43 @@ describe("Test AmqpSimple module", function() {
             cleanup(connection, done, err);
           }
         });
+      });
+    });
+
+    it("should create a topology and send and receive a Message", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchangeName1 = nextExchangeName();
+      var exchangeName2 = nextExchangeName();
+      var queueName1 = nextQueueName();
+      var topology: Amqp.Connection.Topology = {
+        exchanges: [
+          {name: exchangeName1},
+          {name: exchangeName2}
+        ],
+        queues: [
+          {name: queueName1}
+        ],
+        bindings: [
+          {source: exchangeName1, exchange: exchangeName2},
+          {source: exchangeName2, queue: queueName1}
+        ]
+      };
+
+      connection.declareTopology(topology).then(function () {
+        var queue = connection.declareQueue(queueName1);
+        queue.activateConsumer((message) => {
+          expect(message.getContent()).equals("Test");
+          cleanup(connection, done);
+        }, {noAck: true});
+
+        var exchange = connection.declareExchange(exchangeName1);
+        var msg = new Amqp.Message("Test");
+        exchange.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
       });
     });
   });

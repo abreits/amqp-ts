@@ -8,20 +8,21 @@ export declare namespace Connection {
         interval: number;
     }
     export interface Topology {
-        exchanges: {
+        exchanges?: {
             name: string,
             type?: string,
             options?: any
         }[];
-        queues: {
+        queues?: {
             name: string,
             options?: any
         }[];
-        bindings: {
+        bindings?: {
             source: string,
             queue?: string,
             exchange?: string,
-            pattern: string, args: any
+            pattern?: string,
+            args?: any
         }[];
     }
 }
