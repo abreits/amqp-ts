@@ -17,7 +17,7 @@ Amqp-ts is a library for nodejs that simplifies communication with AMQP message 
 
 ### Important Changes
 
-Starting in version 0.14 the return type of [exchange.rpc](https://github.com/abreits/amqp-ts/wiki/Exchange class#rpc) and [queue.rpc](https://github.com/abreits/amqp-ts/wiki/Queue class#rpc) from 'Promise < any >' to 'Promise < [Message](https://github.com/abreits/amqp-ts/wiki/Message class) >'.
+Starting in version 0.14 the return type of [exchange.rpc](https://github.com/abreits/amqp-ts/wiki/Exchange class#rpc) and [queue.rpc](https://github.com/abreits/amqp-ts/wiki/Queue class#rpc) changed from 'Promise < any >' to 'Promise < [Message](https://github.com/abreits/amqp-ts/wiki/Message class) >'.
 
 Starting in version 0.12 the [Message class](https://github.com/abreits/amqp-ts/wiki/Message class) has been added. It is a more elegant way to send and receive messages.
 It is the preferred way to deal with sending and receiving messages.
