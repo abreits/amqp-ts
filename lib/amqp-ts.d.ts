@@ -81,7 +81,7 @@ export class Exchange {
      */
     publish(content: any, routingKey?: string, options?: any): void;
     send(message: Message, routingKey?: string): void;
-    rpc(requestParameters: any): Promise<any>;
+    rpc(requestParameters: any): Promise<Message>;
     delete(): Promise<void>;
     close(): Promise<void>;
     bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
@@ -143,7 +143,7 @@ export class Queue {
      */
     publish(content: any, options?: any): void;
     send(message: Message, routingKey?: string): void;
-    rpc(requestParameters: any): Promise<any>;
+    rpc(requestParameters: any): Promise<Message>;
     /**
      * deprecated! use 'queue.activateConsumer(...)' instead, will be removed in a next major release!
      */

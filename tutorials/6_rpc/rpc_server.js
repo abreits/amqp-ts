@@ -16,7 +16,7 @@ queue.activateConsumer(function(message) {
 
   // return fibonacci number
   return fibonacci(n);
-});
+}, {noAck: true});
 
 // compute the fibonacci number
 function fibonacci(n) {

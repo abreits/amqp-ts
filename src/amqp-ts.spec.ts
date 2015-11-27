@@ -985,7 +985,7 @@ describe("Test AmqpSimple module", function() {
       connection.completeConfiguration().then(function () {
         queue.rpc({reply: "TestRpc"}).then((result) => {
           try {
-            expect(result).equals("TestRpc");
+            expect(result.getContent()).equals("TestRpc");
             cleanup(connection, done);
           } catch (err) {
             cleanup(connection, done, err);
@@ -994,7 +994,7 @@ describe("Test AmqpSimple module", function() {
       });
     });
 
-    it("should process an unresolved queue rpc", function(done) {
+    it("should process an unresolved queue rpc, consumer returning Message", function(done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1002,12 +1002,12 @@ describe("Test AmqpSimple module", function() {
       var queue = connection.declareQueue(nextQueueName());
 
       queue.activateConsumer((message) => {
-        return message.getContent().reply;
+        return new Amqp.Message(message.getContent().reply);
       });
 
       queue.rpc({reply: "TestRpc"}).then((result) => {
         try {
-          expect(result).equals("TestRpc");
+          expect(result.getContent()).equals("TestRpc");
           cleanup(connection, done);
         } catch (err) {
           cleanup(connection, done, err);
@@ -1029,12 +1029,33 @@ describe("Test AmqpSimple module", function() {
       connection.completeConfiguration().then(function () {
         exchange.rpc({reply: "TestRpc"}).then((result) => {
           try {
-            expect(result).equals("TestRpc");
+            expect(result.getContent()).equals("TestRpc");
             cleanup(connection, done);
           } catch (err) {
             cleanup(connection, done, err);
           }
         });
+      });
+    });
+
+    it("should process an unresolved exchange rpc, consumer returning Message", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchange = connection.declareExchange(nextExchangeName());
+
+      exchange.activateConsumer((message) => {
+        return new Amqp.Message(message.getContent().reply);
+      });
+
+      exchange.rpc({reply: "TestRpc"}).then((result) => {
+        try {
+          expect(result.getContent()).equals("TestRpc");
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
       });
     });
 

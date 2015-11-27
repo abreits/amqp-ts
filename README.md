@@ -15,14 +15,19 @@ Overview    <a name="overview"></a>
 
 Amqp-ts is a library for nodejs that simplifies communication with AMQP message busses written in Typescript. It has been tested on RabbitMQ. It uses the [amqplib](http://www.squaremobius.net/amqp.node/) library by [Michael Bridgen (squaremo)](https://github.com/squaremo).
 
-##### Defining Features
+### Important Changes
+
+Starting in version 0.12 the Message class has been added. It is a more elegant way to send and receive messages.
+It is the preferred way to deal with sending and receiving messages.
+
+### Defining Features
 
 - [High level non opinioned library], no need to worry about channels etc.
 - ['Lazy' initialization](#initialization), async AMQP dependencies are resolved automatically
 - [Automatic reconnection](#reconnect), when the connection with the AMQP server fails, the whole connection and configuration is rebuilt automatically
 - Written in typescript, it is compatible with the Typescript 1.6 module type definition resolution for node.js.
 
-##### Current status
+### Current status
 
 This is a work in progress, currently in a late beta state.
 

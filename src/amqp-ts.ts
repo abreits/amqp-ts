@@ -467,24 +467,35 @@ export class Exchange {
     message.sendTo(this, routingKey);
   }
 
-  rpc(requestParameters: any, routingKey = ""): Promise<any> {
-    return new Promise((resolve, reject) => {
-      var consumerTag;
-      this._channel.consume(DIRECT_REPLY_TO_QUEUE, (msg) => {
-        this._channel.cancel(consumerTag);
-        var resultMessage = new Message(msg.content, msg.properties);
-        resolve(resultMessage.getContent());
-      }, {noAck: true}, (err, ok) => {
-        /* istanbul ignore if */
-        if (err) {
-          reject(new Error("amqp-ts: Exchange.rpc error: " + err.message));
-        } else {
-          // send the rpc request
-          consumerTag = ok.consumerTag;
-          var callMessage = new Message(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
-          callMessage.sendTo(this, routingKey);
-        }
-      });
+  rpc(requestParameters: any, routingKey = ""): Promise<Message> {
+    return new Promise<Message>((resolve, reject) => {
+      var processRpc = () => {
+        var consumerTag;
+        this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
+          this._channel.cancel(consumerTag);
+          var result = new Message(resultMsg.content, resultMsg.fields);
+          result.fields = resultMsg.fields;
+          resolve(result);
+          //resolve(Queue._unpackMessageContent(result));
+        }, {noAck: true}, (err, ok) => {
+          /* istanbul ignore if */
+          if (err) {
+            reject(new Error("amqp-ts: Queue.rpc error: " + err.message));
+          } else {
+            // send the rpc request
+            consumerTag = ok.consumerTag;
+            var message = new Message(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
+            message.sendTo(this, routingKey);
+          }
+        });
+      };
+
+      // execute sync when possible
+      if (this.initialized.isFulfilled()) {
+        processRpc();
+      } else {
+        this.initialized.then(processRpc);
+      }
     });
   }
 
@@ -725,13 +736,16 @@ export class Queue {
     message.sendTo(this, routingKey);
   }
 
-  rpc(requestParameters: any): Promise<any> {
-    return new Promise((resolve, reject) => {
+  rpc(requestParameters: any): Promise<Message> {
+    return new Promise<Message>((resolve, reject) => {
       var processRpc = () => {
         var consumerTag;
-        this._channel.consume(DIRECT_REPLY_TO_QUEUE, (msg) => {
+        this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
           this._channel.cancel(consumerTag);
-          resolve(Queue._unpackMessageContent(msg));
+          var result = new Message(resultMsg.content, resultMsg.fields);
+          result.fields = resultMsg.fields;
+          resolve(result);
+          //resolve(Queue._unpackMessageContent(result));
         }, {noAck: true}, (err, ok) => {
           /* istanbul ignore if */
           if (err) {
@@ -739,7 +753,8 @@ export class Queue {
           } else {
             // send the rpc request
             consumerTag = ok.consumerTag;
-            this.publish(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
+            var message = new Message(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
+            message.sendTo(this);
           }
         });
       };
@@ -834,9 +849,10 @@ export class Queue {
         var result = this._consumer(message);
         // check if there is a reply-to
         if (msg.properties.replyTo) {
-          var options: any = {};
-          var response = Queue._packMessageContent(result, options);
-          this._channel.sendToQueue(msg.properties.replyTo, response, options);
+          if (!(result instanceof Message)) {
+            result = new Message(result, {});
+          }
+          this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
         }
       } catch (err) {
         /* istanbul ignore next */

@@ -17,7 +17,7 @@ console.log(' [x] Requesting fib(%d)', num);
 // send a rpc request, it will automatically be sent after the the queue declaration
 // has finished successfully
 queue.rpc(num).then(function(result) {
-  console.log(' [.] Got ', result);
+  console.log(' [.] Got ', result.getContent());
 });
 
 // or use the method explained in the tutorial
