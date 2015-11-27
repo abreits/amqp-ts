@@ -17,8 +17,11 @@ Amqp-ts is a library for nodejs that simplifies communication with AMQP message 
 
 ### Important Changes
 
-Starting in version 0.12 the Message class has been added. It is a more elegant way to send and receive messages.
+Starting in version 0.14 the return type of [exchange.rpc](https://github.com/abreits/amqp-ts/wiki/Exchange class#rpc) and [queue.rpc](https://github.com/abreits/amqp-ts/wiki/Queue class#rpc) from 'Promise < any >' to 'Promise < [Message](https://github.com/abreits/amqp-ts/wiki/Message class) >'.
+
+Starting in version 0.12 the [Message class](https://github.com/abreits/amqp-ts/wiki/Message class) has been added. It is a more elegant way to send and receive messages.
 It is the preferred way to deal with sending and receiving messages.
+
 
 ### Defining Features
 
@@ -106,6 +109,14 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 0.14.0
+ - changed the return type of [exchange.rpc](https://github.com/abreits/amqp-ts/wiki/Exchange class#rpc) and [queue.rpc](https://github.com/abreits/amqp-ts/wiki/Queue class#rpc) from 'Promise < any >' to 'Promise < [Message](https://github.com/abreits/amqp-ts/wiki/Message class) >'
+ - added the option to return a Message in [exchange.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Exchange class#activateConsumer) and [queue.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Queue class#activateConsumer)
+ - updated the [amqp-ts Wiki](https://github.com/abreits/amqp-ts/wiki) API documentation
+
+### version 0.13.0
+ - skipped to avoid bad luck :)
+
 ### version 0.12.0
  - added [Message class](https://github.com/abreits/amqp-ts/wiki/Message class)
  - added [exchange.send](https://github.com/abreits/amqp-ts/wiki/Exchange class#send) and [queue.send](https://github.com/abreits/amqp-ts/wiki/Queue class#send).
