@@ -523,6 +523,8 @@ export class Exchange {
             });
           }
         });
+      }).catch((err) => {
+        reject(err);
       });
     });
   }
@@ -544,6 +546,8 @@ export class Exchange {
             resolve(null);
           }
         });
+      }).catch((err) => {
+        reject(err);
       });
     });
   }
@@ -926,6 +930,8 @@ export class Queue {
             });
           }
         });
+      }).catch((err) => {
+        reject(err);
       });
     });
   }
@@ -947,6 +953,8 @@ export class Queue {
             resolve(null);
           }
         });
+      }).catch((err) => {
+        reject(err);
       });
     });
   }
