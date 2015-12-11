@@ -404,6 +404,9 @@ export class Exchange {
   _type: string;
   _options: AmqpLib.Options.AssertExchange;
 
+  _deleting: Promise<void>;
+  _closing: Promise<void>;
+
   constructor (connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions) {
     this._connection = connection;
     this._name = name;
@@ -500,56 +503,62 @@ export class Exchange {
   }
 
   delete(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.initialized.then(() => {
-        return Binding.removeBindingsContaining(this);
-      }).then(() => {
-        this._channel.deleteExchange(this._name, {}, (err, ok) => {
-          /* istanbul ignore if */
-          if (err) {
-            reject(err);
-          } else {
-            this._channel.close((err) => {
-              delete this.initialized; // invalidate exchange
-              delete this._connection._exchanges[this._name]; // remove the exchange from our administration
-              /* istanbul ignore if */
-              if (err) {
-                reject(err);
-              } else {
-                delete this._channel;
-                delete this._connection;
-                resolve(null);
-              }
-            });
-          }
+    if (this._deleting === undefined) {
+      this._deleting = new Promise<void>((resolve, reject) => {
+        this.initialized.then(() => {
+          return Binding.removeBindingsContaining(this);
+        }).then(() => {
+          this._channel.deleteExchange(this._name, {}, (err, ok) => {
+            /* istanbul ignore if */
+            if (err) {
+              reject(err);
+            } else {
+              this._channel.close((err) => {
+                delete this.initialized; // invalidate exchange
+                delete this._connection._exchanges[this._name]; // remove the exchange from our administration
+                /* istanbul ignore if */
+                if (err) {
+                  reject(err);
+                } else {
+                  delete this._channel;
+                  delete this._connection;
+                  resolve(null);
+                }
+              });
+            }
+          });
+        }).catch((err) => {
+          reject(err);
         });
-      }).catch((err) => {
-        reject(err);
       });
-    });
+    }
+    return this._deleting;
   }
 
   close(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.initialized.then(() => {
-        return Binding.removeBindingsContaining(this);
-      }).then(() => {
-        delete this.initialized; // invalidate exchange
-        delete this._connection._exchanges[this._name]; // remove the exchange from our administration
-        this._channel.close((err) => {
-          /* istanbul ignore if */
-          if (err) {
-            reject(err);
-          } else {
-            delete this._channel;
-            delete this._connection;
-            resolve(null);
-          }
+    if (this._closing === undefined) {
+      this._closing = new Promise<void>((resolve, reject) => {
+        this.initialized.then(() => {
+          return Binding.removeBindingsContaining(this);
+        }).then(() => {
+          delete this.initialized; // invalidate exchange
+          delete this._connection._exchanges[this._name]; // remove the exchange from our administration
+          this._channel.close((err) => {
+            /* istanbul ignore if */
+            if (err) {
+              reject(err);
+            } else {
+              delete this._channel;
+              delete this._connection;
+              resolve(null);
+            }
+          });
+        }).catch((err) => {
+          reject(err);
         });
-      }).catch((err) => {
-        reject(err);
       });
-    });
+    }
+    return this._closing;
   }
 
   bind(source: Exchange, pattern = "", args: any = {}): Promise<Binding> {
@@ -655,6 +664,8 @@ export class Queue {
   _consumerOptions: Queue.StartConsumerOptions;
   _consumerTag: string;
   _consumerInitialized: Promise<Queue.StartConsumerResult>;
+  _deleting: Promise<Queue.DeleteResult>;
+  _closing: Promise<void>;
 
   constructor (connection: Connection, name: string, options?: Queue.DeclarationOptions) {
     this._connection = connection;
@@ -907,56 +918,62 @@ export class Queue {
   }
 
   delete(): Promise<Queue.DeleteResult> {
-    return new Promise<Queue.DeleteResult>((resolve, reject) => {
-      this.initialized.then(() => {
-        return Binding.removeBindingsContaining(this);
-      }).then(() => {
-        this._channel.deleteQueue(this._name, {}, (err, ok) => {
-          /* istanbul ignore if */
-          if (err) {
-            reject(err);
-          } else {
-            delete this.initialized; // invalidate queue
-            delete this._connection._queues[this._name]; // remove the queue from our administration
-            this._channel.close((err) => {
-              /* istanbul ignore if */
-              if (err) {
-                reject(err);
-              } else {
-                delete this._channel;
-                delete this._connection;
-                resolve(<Queue.DeleteResult>ok);
-              }
-            });
-          }
+    if (this._deleting === undefined) {
+      this._deleting = new Promise<Queue.DeleteResult>((resolve, reject) => {
+        this.initialized.then(() => {
+          return Binding.removeBindingsContaining(this);
+        }).then(() => {
+          this._channel.deleteQueue(this._name, {}, (err, ok) => {
+            /* istanbul ignore if */
+            if (err) {
+              reject(err);
+            } else {
+              delete this.initialized; // invalidate queue
+              delete this._connection._queues[this._name]; // remove the queue from our administration
+              this._channel.close((err) => {
+                /* istanbul ignore if */
+                if (err) {
+                  reject(err);
+                } else {
+                  delete this._channel;
+                  delete this._connection;
+                  resolve(<Queue.DeleteResult>ok);
+                }
+              });
+            }
+          });
+        }).catch((err) => {
+          reject(err);
         });
-      }).catch((err) => {
-        reject(err);
       });
-    });
+    }
+    return this._deleting;
   }
 
   close(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.initialized.then(() => {
-        return Binding.removeBindingsContaining(this);
-      }).then(() => {
-        delete this.initialized; // invalidate queue
-        delete this._connection._queues[this._name]; // remove the queue from our administration
-        this._channel.close((err) => {
-          /* istanbul ignore if */
-          if (err) {
-            reject(err);
-          } else {
-            delete this._channel;
-            delete this._connection;
-            resolve(null);
-          }
+    if (this._closing === undefined) {
+      this._closing = new Promise<void>((resolve, reject) => {
+        this.initialized.then(() => {
+          return Binding.removeBindingsContaining(this);
+        }).then(() => {
+          delete this.initialized; // invalidate queue
+          delete this._connection._queues[this._name]; // remove the queue from our administration
+          this._channel.close((err) => {
+            /* istanbul ignore if */
+            if (err) {
+              reject(err);
+            } else {
+              delete this._channel;
+              delete this._connection;
+              resolve(null);
+            }
+          });
+        }).catch((err) => {
+          reject(err);
         });
-      }).catch((err) => {
-        reject(err);
       });
-    });
+    }
+    return this._closing;
   }
 
   bind(source: Exchange, pattern = "", args: any = {}): Promise<Binding> {

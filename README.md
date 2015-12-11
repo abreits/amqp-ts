@@ -109,8 +109,12 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+
+### version 0.14.2
+ - multiple calls of `exchange.close`, `exchange.delete`, `queue.close` and `queue.delete` return the same promise (and are thereby executed only once)
+
 ### version 0.14.1
- - added extra promise rejection handling for `exchange.close`, `exchange.delete`, `queue.close` and `queue.delete`.
+ - added extra promise rejection handling for `exchange.close`, `exchange.delete`, `queue.close` and `queue.delete`
 
 ### version 0.14.0
  - changed the return type of [exchange.rpc](https://github.com/abreits/amqp-ts/wiki/Exchange class#rpc) and [queue.rpc](https://github.com/abreits/amqp-ts/wiki/Queue class#rpc) from 'Promise < any >' to 'Promise < [Message](https://github.com/abreits/amqp-ts/wiki/Message class) >'

@@ -1095,5 +1095,77 @@ describe("Test AmqpSimple module", function() {
         done(err);
       });
     });
+
+    it("should close a queue multiple times without generating errors", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queueName = nextQueueName();
+      var queue = connection.declareQueue(queueName);
+
+      connection.completeConfiguration().then(function () {
+        queue.close();
+        queue.close().then(() => {
+          cleanup(connection, done);
+        });
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should delete a queue multiple times without generating errors", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queueName = nextQueueName();
+      var queue = connection.declareQueue(queueName);
+
+      connection.completeConfiguration().then(function () {
+        queue.delete();
+        queue.delete().then(() => {
+          cleanup(connection, done);
+        });
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should close an exchange multiple times without generating errors", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchangeName = nextExchangeName();
+      var exchange = connection.declareExchange(exchangeName);
+
+      connection.completeConfiguration().then(function () {
+        exchange.close();
+        exchange.close().then(() => {
+          cleanup(connection, done);
+        });
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should delete an exchange multiple times without generating errors", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchangeName = nextExchangeName();
+      var exchange = connection.declareExchange(exchangeName);
+
+      connection.completeConfiguration().then(function () {
+        exchange.delete();
+        exchange.delete().then(() => {
+          cleanup(connection, done);
+        });
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
   });
 });
