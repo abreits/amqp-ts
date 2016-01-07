@@ -17,9 +17,9 @@ Amqp-ts is a library for nodejs that simplifies communication with AMQP message 
 
 ### Important Changes
 
-Starting in version 0.14 the return type of [exchange.rpc](https://github.com/abreits/amqp-ts/wiki/Exchange class#rpc) and [queue.rpc](https://github.com/abreits/amqp-ts/wiki/Queue class#rpc) changed from 'Promise < any >' to 'Promise < [Message](https://github.com/abreits/amqp-ts/wiki/Message class) >'.
+Starting in version 0.14 the return type of [exchange.rpc](https://github.com/abreits/amqp-ts/wiki/Exchange%20class#rpc) and [queue.rpc](https://github.com/abreits/amqp-ts/wiki/Queue%20class#rpc) changed from 'Promise < any >' to 'Promise < [Message](https://github.com/abreits/amqp-ts/wiki/Message%20class) >'.
 
-Starting in version 0.12 the [Message class](https://github.com/abreits/amqp-ts/wiki/Message class) has been added. It is a more elegant way to send and receive messages.
+Starting in version 0.12 the [Message class](https://github.com/abreits/amqp-ts/wiki/Message%20class) has been added. It is a more elegant way to send and receive messages.
 It is the preferred way to deal with sending and receiving messages.
 
 
@@ -109,6 +109,8 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 0.14.3
+ - improved readability of readme.md on npmjs
 
 ### version 0.14.2
  - multiple calls of `exchange.close`, `exchange.delete`, `queue.close` and `queue.delete` return the same promise (and are thereby executed only once)
@@ -117,23 +119,23 @@ What's new    <a name="whatsnew"></a>
  - added extra promise rejection handling for `exchange.close`, `exchange.delete`, `queue.close` and `queue.delete`
 
 ### version 0.14.0
- - changed the return type of [exchange.rpc](https://github.com/abreits/amqp-ts/wiki/Exchange class#rpc) and [queue.rpc](https://github.com/abreits/amqp-ts/wiki/Queue class#rpc) from 'Promise < any >' to 'Promise < [Message](https://github.com/abreits/amqp-ts/wiki/Message class) >'
- - added the option to return a Message in [exchange.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Exchange class#activateConsumer) and [queue.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Queue class#activateConsumer)
+ - changed the return type of [exchange.rpc](https://github.com/abreits/amqp-ts/wiki/Exchange%20class#rpc) and [queue.rpc](https://github.com/abreits/amqp-ts/wiki/Queue%20class#rpc) from 'Promise < any >' to 'Promise < [Message](https://github.com/abreits/amqp-ts/wiki/Message%20class) >'
+ - added the option to return a Message in [exchange.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Exchange%20class#activateConsumer) and [queue.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Queue%20class#activateConsumer)
  - updated the [amqp-ts Wiki](https://github.com/abreits/amqp-ts/wiki) API documentation
 
 ### version 0.13.0
  - skipped to avoid bad luck :)
 
 ### version 0.12.0
- - added [Message class](https://github.com/abreits/amqp-ts/wiki/Message class)
- - added [exchange.send](https://github.com/abreits/amqp-ts/wiki/Exchange class#send) and [queue.send](https://github.com/abreits/amqp-ts/wiki/Queue class#send).
- - deprecated [exchange.publish](https://github.com/abreits/amqp-ts/wiki/Exchange class#publish) and [queue.publish](https://github.com/abreits/amqp-ts/wiki/Queue class#publish).
- - added [exchange.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Exchange class#activateConsumer) and [queue.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Queue class#activateConsumer).
- - deprecated [exchange.startConsumer](https://github.com/abreits/amqp-ts/wiki/Exchange class#startConsumer) and [queue.startConsumer](https://github.com/abreits/amqp-ts/wiki/Queue class#startConsumer).
- - changed [connection.declareExchange](https://github.com/abreits/amqp-ts/wiki/Connection class#declareExchange)
-   and [connection.declareQueue](https://github.com/abreits/amqp-ts/wiki/Connection class#declareQueue)
+ - added [Message class](https://github.com/abreits/amqp-ts/wiki/Message%20class)
+ - added [exchange.send](https://github.com/abreits/amqp-ts/wiki/Exchange%20class#send) and [queue.send](https://github.com/abreits/amqp-ts/wiki/Queue%20class#send).
+ - deprecated [exchange.publish](https://github.com/abreits/amqp-ts/wiki/Exchange%20class#publish) and [queue.publish](https://github.com/abreits/amqp-ts/wiki/Queue%20class#publish).
+ - added [exchange.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Exchange%20class#activateConsumer) and [queue.activateConsumer](https://github.com/abreits/amqp-ts/wiki/Queue%20class#activateConsumer).
+ - deprecated [exchange.startConsumer](https://github.com/abreits/amqp-ts/wiki/Exchange%20class#startConsumer) and [queue.startConsumer](https://github.com/abreits/amqp-ts/wiki/Queue%20class#startConsumer).
+ - changed [connection.declareExchange](https://github.com/abreits/amqp-ts/wiki/Connection%20class#declareExchange)
+   and [connection.declareQueue](https://github.com/abreits/amqp-ts/wiki/Connection%20class#declareQueue)
    to prevent duplicate declaration of the same exchange/queue
- - added [connection.declareTopology](https://github.com/abreits/amqp-ts/wiki/Connection class#declareTopology)
+ - added [connection.declareTopology](https://github.com/abreits/amqp-ts/wiki/Connection%20class#declareTopology)
  - added support functions [getMessageContent] and [setMessageContent]
  - fixed bug in integration test
 
