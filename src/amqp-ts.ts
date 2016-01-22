@@ -14,7 +14,8 @@ import * as winston from "winston";
 import * as path from "path";
 import * as os from "os";
 
-var ApplicationName = process.env.AMQPTS_APPLICATIONNAME || path.parse(process.argv[1]).name;
+var ApplicationName = process.env.AMQPTS_APPLICATIONNAME ||
+                      (path.parse ? path.parse(process.argv[1]).name : path.basename(process.argv[1]));
 
 // create a custom winston logger for amqp-ts
 var amqpts_log = new winston.Logger({

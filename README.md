@@ -109,6 +109,9 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 0.14.4
+ - fixed error when using node.js version 0.10.x: `path` library does not have a method `parse` in 0.10.x
+
 ### version 0.14.3
  - improved readability of readme.md on npmjs
 

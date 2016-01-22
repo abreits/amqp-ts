@@ -1,5 +1,5 @@
 /**
- * Tests for AmqpSimple
+ * Tests for amqp-ts
  * Created by Ab on 2015-09-16.
  */
 import * as Chai from "chai";
@@ -1035,27 +1035,6 @@ describe("Test AmqpSimple module", function() {
             cleanup(connection, done, err);
           }
         });
-      });
-    });
-
-    it("should process an unresolved exchange rpc, consumer returning Message", function(done) {
-      // initialize
-      var connection = getAmqpConnection();
-
-      // test code
-      var exchange = connection.declareExchange(nextExchangeName());
-
-      exchange.activateConsumer((message) => {
-        return new Amqp.Message(message.getContent().reply);
-      });
-
-      exchange.rpc({reply: "TestRpc"}).then((result) => {
-        try {
-          expect(result.getContent()).equals("TestRpc");
-          cleanup(connection, done);
-        } catch (err) {
-          cleanup(connection, done, err);
-        }
       });
     });
 
