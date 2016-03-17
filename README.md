@@ -59,7 +59,7 @@ var queue = connection.declareQueue("QueueName");
 queue.bind(exchange);
 queue.activateConsumer((message) => {
     console.log("Message received: " + message.getContent());
-}
+});
 
 // it is possible that the following message is not received because
 // it can be sent before the queue, binding or consumer exist
@@ -84,7 +84,7 @@ var queue = connection.declareQueue("QueueName");
 queue.bind(exchange);
 queue.activateConsumer((message) => {
     console.log("Message received: " + message.getContent());
-}
+});
 
 // it is possible that the following message is not received because
 // it can be sent before the queue, binding or consumer exist
