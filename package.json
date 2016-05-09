@@ -20,22 +20,24 @@
     "test-integration": "gulp test:integration"
   },
   "dependencies": {
-    "amqplib": "^0.4.0",
-    "bluebird": "^3.0.5",
-    "winston": "^2.1.0"
+    "amqplib": "^0.4.1",
+    "bluebird": "^3.3.5",
+    "winston": "^2.2.0"
   },
   "devDependencies": {
-    "chai": "^3.4.0",
-    "del": "^2.0.2",
-    "gulp": "^3.8.11",
+    "chai": "^3.5.0",
+    "del": "^2.2.0",
+    "gulp": "^3.9.1",
     "gulp-add-src": "^0.2.0",
     "gulp-rename": "^1.2.2",
-    "gulp-sourcemaps": "^1.5.1",
-    "gulp-spawn-mocha": "^2.0.1",
-    "gulp-tslint": "^3.3.0",
-    "gulp-typescript": "^2.9.2",
-    "line-reader": "^0.3.0",
-    "merge2": "^0.3.6",
-    "source-map-support": "^0.3.1"
+    "gulp-sourcemaps": "^1.6.0",
+    "gulp-spawn-mocha": "^2.2.2",
+    "gulp-tslint": "^3.6.0",
+    "gulp-typescript": "^2.13.4",
+    "line-reader": "^0.3.1",
+    "merge2": "^0.3.7",
+    "source-map-support": "^0.3.3",
+    "tslint": "^3.9.0",
+    "typescript": "^1.8.10"
   }
 }

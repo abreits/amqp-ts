@@ -2,6 +2,7 @@
  * Tests for amqp-ts
  * Created by Ab on 2015-09-16.
  */
+import * as Promise from "bluebird";
 import * as Chai from "chai";
 var expect = Chai.expect;
 
@@ -22,7 +23,7 @@ var testQueueNamePrefix = process.env.AMQPTEST_QUEUE_PREFIX || "TestQueue_";
 Amqp.log.transports.console.level = LogLevel;
 
 /* istanbul ignore next */
-describe("Test AmqpSimple module", function() {
+describe("Test amqp-ts module", function() {
   this.timeout(UnitTestTimeout); // define default timeout
 
   // create unique queues and exchanges for each test so they do not interfere with each other

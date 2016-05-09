@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "amqplib": "registry:npm/amqplib#0.4.1+20160401203933",
+    "bluebird": "registry:npm/bluebird#3.3.4+20160427051630"
+  },
+  "ambientDependencies": {
+    "amqplib": "registry:dt/amqplib#0.3.0+20160317120654",
+    "node": "registry:dt/node#4.0.0+20160509082809",
+    "when": "registry:dt/when#2.4.0+20160317120654",
+    "winston": "registry:dt/winston#0.0.0+20160417152829"
+  },
+  "devDependencies": {
+    "chai": "registry:npm/chai#3.5.0+20160415060238"
+  },
+  "ambientDevDependencies": {
+    "mocha": "registry:dt/mocha#2.2.5+20160317120654"
+  }
+}

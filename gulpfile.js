@@ -64,7 +64,7 @@ gulp.task('compile', function () {
     .pipe(tslint.report('prose', {
       emitError: false
     }))
-    .pipe(addsrc.prepend('typings*/**/*.d.ts'))
+//    .pipe(addsrc.prepend('typings*/**/*.d.ts'))
     .pipe (sourcemaps.init())
     .pipe (ts(tsProject));
 
