@@ -784,6 +784,26 @@ export class Queue {
     });
   }
 
+  prefetch(count: number): void {
+    this.initialized.then(() => {
+      this._channel.prefetch(count);
+    });
+  }
+
+  recover(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.initialized.then(() => {
+        this._channel.recover((err, ok) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(null);
+          }
+        });
+      });
+    });
+  }
+
   /**
    * deprecated, use 'queue.activateConsumer(...)' instead
    */
@@ -997,6 +1017,7 @@ export namespace Queue {
     expires?: number;
     deadLetterExchange?: string;
     maxLength?: number;
+    prefetch?: number;
   }
   export interface StartConsumerOptions {
     rawMessage?: boolean;

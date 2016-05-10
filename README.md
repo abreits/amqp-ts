@@ -109,6 +109,11 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 1.0.0
+ - updated typescript definition file management from [tsd](https://github.com/DefinitelyTyped/tsd) to [typings](https://github.com/typings/typings)
+ - added [queue.prefetch](https://github.com/abreits/amqp-ts/wiki/Queue class#prefetch) and [queue.recover](https://github.com/abreits/amqp-ts/wiki/Queue class#recover) methods
+ - updated to version 1.0 (finally)
+
 ### version 0.14.4
  - fixed error when using node.js version 0.10.x: `path` library does not have a method `parse` in 0.10.x
 

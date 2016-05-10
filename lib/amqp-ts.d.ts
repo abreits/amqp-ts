@@ -104,6 +104,7 @@ export declare namespace Queue {
         expires?: number;
         deadLetterExchange?: string;
         maxLength?: number;
+        prefetch?: number;
     }
     interface ActivateConsumerOptions {
         consumerTag?: string;
@@ -154,6 +155,8 @@ export class Queue {
     close(): Promise<Queue.DeleteResult>;
     bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
     unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
+    prefetch(count): void;
+    recover(): Promise<void>;
 }
 
 /**

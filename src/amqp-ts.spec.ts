@@ -1147,5 +1147,40 @@ describe("Test amqp-ts module", function() {
         done(err);
       });
     });
+
+    it("should set a prefetch count to a queue", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queueName = nextQueueName();
+      var queue = connection.declareQueue(queueName);
+
+      connection.completeConfiguration().then(function () {
+        // todo: create a ral test that checks if the function works
+        queue.prefetch(3);
+        done();
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+        it("should recover to a queue", function(done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queueName = nextQueueName();
+      var queue = connection.declareQueue(queueName);
+
+      connection.completeConfiguration().then(function () {
+        // todo: create a real test that checks if the function works
+        queue.recover().then(() => {
+          cleanup(connection, done);
+        });
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
   });
 });
