@@ -671,7 +671,7 @@ export class Queue {
   constructor (connection: Connection, name: string, options?: Queue.DeclarationOptions) {
     this._connection = connection;
     this._name = name;
-    this._options = options;
+    this._options = options || {};
     this._connection._queues[this._name] = this;
     this._initialize();
   }
@@ -692,6 +692,9 @@ export class Queue {
                 delete this._connection._queues[this._name];
                 reject(err);
               } else {
+                if (this._options.prefetch) {
+                  this._channel.prefetch(this._options.prefetch);
+                }
                 resolve(<Queue.InitializeResult>ok);
               }
             });
@@ -787,6 +790,7 @@ export class Queue {
   prefetch(count: number): void {
     this.initialized.then(() => {
       this._channel.prefetch(count);
+      this._options.prefetch = count;
     });
   }
 
