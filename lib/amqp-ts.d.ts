@@ -1,64 +1,116 @@
-// exported Typescript type definition for AmqpSimple
-
+/**
+ * AmqpSimple.ts - provides a simple interface to read from and write to RabbitMQ amqp exchanges
+ * Created by Ab on 17-9-2015.
+ *
+ * methods and properties starting with '_' signify that the scope of the item should be limited to
+ * the inside of the enclosing namespace.
+ */
+import * as AmqpLib from "amqplib/callback_api";
 import * as Promise from "bluebird";
-
+import * as winston from "winston";
+export declare var log: winston.LoggerInstance;
+export declare class Connection {
+    initialized: Promise<void>;
+    private url;
+    private socketOptions;
+    private reconnectStrategy;
+    private connectedBefore;
+    _connection: AmqpLib.Connection;
+    _rebuilding: boolean;
+    _exchanges: {
+        [id: string]: Exchange;
+    };
+    _queues: {
+        [id: string]: Queue;
+    };
+    _bindings: {
+        [id: string]: Binding;
+    };
+    constructor(url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy);
+    private rebuildConnection();
+    private tryToConnect(thisConnection, retry, callback);
+    _rebuildAll(err: Error): Promise<void>;
+    close(): Promise<void>;
+    /**
+     * Make sure the whole defined connection topology is configured:
+     * return promise that fulfills after all defined exchanges, queues and bindings are initialized
+     */
+    completeConfiguration(): Promise<any>;
+    /**
+     * Delete the whole defined connection topology:
+     * return promise that fulfills after all defined exchanges, queues and bindings have been removed
+     */
+    deleteConfiguration(): Promise<any>;
+    declareExchange(name: string, type?: string, options?: Exchange.DeclarationOptions): Exchange;
+    declareQueue(name: string, options?: Queue.DeclarationOptions): Queue;
+    declareTopology(topology: Connection.Topology): Promise<any>;
+}
 export declare namespace Connection {
     interface ReconnectStrategy {
         retries: number;
         interval: number;
     }
-    export interface Topology {
-        exchanges?: {
-            name: string,
-            type?: string,
-            options?: any
+    interface Topology {
+        exchanges: {
+            name: string;
+            type?: string;
+            options?: any;
         }[];
-        queues?: {
-            name: string,
-            options?: any
+        queues: {
+            name: string;
+            options?: any;
         }[];
-        bindings?: {
-            source: string,
-            queue?: string,
-            exchange?: string,
-            pattern?: string,
-            args?: any
+        bindings: {
+            source: string;
+            queue?: string;
+            exchange?: string;
+            pattern?: string;
+            args?: any;
         }[];
     }
 }
-export class Connection {
-    initialized: Promise<void>;
-
-    constructor(url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy);
-    private rebuildConnection();
-    private tryToConnect(retry, callback);
-    close(): Promise<void>;
-    /**
-      * Make sure the whole defined connection topology is configured:
-      * return promise that fulfills after all defined exchanges, queues and bindings are initialized
-      */
-    completeConfiguration(): Promise<void>;
-    /**
-      * Delete the whole defined connection topology:
-      * return promise that fulfills after all defined exchanges, queues and bindings have been removed
-      */
-    deleteConfiguration(): Promise<void>;
-    declareExchange(name: string, type?: string, options?: Exchange.DeclarationOptions): Exchange;
-    declareQueue(name: string, options?: Queue.DeclarationOptions): Queue;
-    declareTopology(topology: Connection.Topology): Promise<void>;
+export declare class Message {
+    content: Buffer;
+    fields: any;
+    properties: any;
+    _channel: AmqpLib.Channel;
+    _message: AmqpLib.Message;
+    constructor(content?: any, options?: any);
+    setContent(content: any): void;
+    getContent(): any;
+    sendTo(destination: Exchange | Queue, routingKey?: string): void;
+    ack(allUpTo?: boolean): void;
+    nack(requeue?: boolean): void;
+    reject(requeue?: boolean): void;
 }
-export class Message {
-  content: Buffer;
-  fields: any;
-  properties: any;
-
-  constructor (content?: any, options?: any);
-  setContent(content: any);
-  getContent(): any;
-  sendTo(destination: Exchange | Queue, routingKey?: string);
-  ack(allUpTo?: boolean);
-  nack(requeue?: boolean);
-  reject(requeue?: boolean);
+export declare class Exchange {
+    initialized: Promise<Exchange.InitializeResult>;
+    _connection: Connection;
+    _channel: AmqpLib.Channel;
+    _name: string;
+    _type: string;
+    _options: AmqpLib.Options.AssertExchange;
+    _deleting: Promise<void>;
+    _closing: Promise<void>;
+    constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions);
+    _initialize(): void;
+    /**
+     * deprecated, use 'exchange.send(message: Message)' instead
+     */
+    publish(content: any, routingKey?: string, options?: any): void;
+    send(message: Message, routingKey?: string): void;
+    rpc(requestParameters: any, routingKey?: string): Promise<Message>;
+    delete(): Promise<void>;
+    close(): Promise<void>;
+    bind(source: Exchange, pattern?: string, args?: any): Promise<Binding>;
+    unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
+    consumerQueueName(): string;
+    /**
+     * deprecated, use 'exchange.activateConsumer(...)' instead
+     */
+    startConsumer(onMessage: (msg: any, channel?: AmqpLib.Channel) => any, options?: Queue.StartConsumerOptions): Promise<any>;
+    activateConsumer(onMessage: (msg: Message) => any, options?: Queue.ActivateConsumerOptions): Promise<any>;
+    stopConsumer(): Promise<any>;
 }
 export declare namespace Exchange {
     interface DeclarationOptions {
@@ -68,31 +120,47 @@ export declare namespace Exchange {
         alternateExchange?: string;
         arguments?: any;
     }
-    export interface InitializeResult {
+    interface InitializeResult {
         exchange: string;
     }
 }
-export class Exchange {
-    initialized: Promise<Exchange.InitializeResult>;
-
-    constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions);
+export declare class Queue {
+    initialized: Promise<Queue.InitializeResult>;
+    _connection: Connection;
+    _channel: AmqpLib.Channel;
+    _name: string;
+    _options: Queue.DeclarationOptions;
+    _consumer: (msg: any, channel?: AmqpLib.Channel) => any;
+    _isStartConsumer: boolean;
+    _rawConsumer: boolean;
+    _consumerOptions: Queue.StartConsumerOptions;
+    _consumerTag: string;
+    _consumerInitialized: Promise<Queue.StartConsumerResult>;
+    _deleting: Promise<Queue.DeleteResult>;
+    _closing: Promise<void>;
+    constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
+    _initialize(): void;
+    static _packMessageContent(content: any, options: any): Buffer;
+    static _unpackMessageContent(msg: AmqpLib.Message): any;
     /**
-     * deprecated! use 'exchange.send(msg: Message, routingKey: string)' instead, will be removed in a next major release!
+     * deprecated, use 'queue.send(message: Message)' instead
      */
-    publish(content: any, routingKey?: string, options?: any): void;
+    publish(content: any, options?: any): void;
     send(message: Message, routingKey?: string): void;
     rpc(requestParameters: any): Promise<Message>;
-    delete(): Promise<void>;
-    close(): Promise<void>;
-    bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-    unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-    consumerQueueName(): string;
+    prefetch(count: number): void;
+    recover(): Promise<void>;
     /**
-     * deprecated! use 'exchange.activateConsumer(...)' instead, will be removed in a next major release!
+     * deprecated, use 'queue.activateConsumer(...)' instead
      */
-    startConsumer(onMessage: (msg: any, channel?: any) => any, options?: Queue.StartConsumerOptions): Promise<void>;
-    activateConsumer(onMessage: (message: Message) => any, options?: Queue.StartConsumerOptions): Promise<void>;
+    startConsumer(onMessage: (msg: any, channel?: AmqpLib.Channel) => any, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult>;
+    activateConsumer(onMessage: (msg: Message) => any, options?: Queue.ActivateConsumerOptions): Promise<Queue.StartConsumerResult>;
+    _initializeConsumer(): void;
     stopConsumer(): Promise<void>;
+    delete(): Promise<Queue.DeleteResult>;
+    close(): Promise<void>;
+    bind(source: Exchange, pattern?: string, args?: any): Promise<Binding>;
+    unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
 }
 export declare namespace Queue {
     interface DeclarationOptions {
@@ -106,7 +174,8 @@ export declare namespace Queue {
         maxLength?: number;
         prefetch?: number;
     }
-    interface ActivateConsumerOptions {
+    interface StartConsumerOptions {
+        rawMessage?: boolean;
         consumerTag?: string;
         noLocal?: boolean;
         noAck?: boolean;
@@ -114,8 +183,7 @@ export declare namespace Queue {
         priority?: number;
         arguments?: Object;
     }
-    interface StartConsumerOptions {
-        rawMessage?: boolean;
+    interface ActivateConsumerOptions {
         consumerTag?: string;
         noLocal?: boolean;
         noAck?: boolean;
@@ -126,7 +194,7 @@ export declare namespace Queue {
     interface StartConsumerResult {
         consumerTag: string;
     }
-    export interface InitializeResult {
+    interface InitializeResult {
         queue: string;
         messageCount: number;
         consumerCount: number;
@@ -135,31 +203,15 @@ export declare namespace Queue {
         messageCount: number;
     }
 }
-export class Queue {
-    initialized: Promise<Queue.InitializeResult>;
-
-    constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
-    /**
-     * deprecated! use 'exchange.send(msg: Message, routingKey: string)' instead, will be removed in a next major release!
-     */
-    publish(content: any, options?: any): void;
-    send(message: Message, routingKey?: string): void;
-    rpc(requestParameters: any): Promise<Message>;
-    /**
-     * deprecated! use 'queue.activateConsumer(...)' instead, will be removed in a next major release!
-     */
-    startConsumer(onMessage: (msg: any, channel?: any) => any, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult>;
-    activateConsumer(onMessage: (message: Message) => any, options?: Queue.StartConsumerOptions): Promise<void>;
-    stopConsumer(): Promise<void>;
-    delete(): Promise<Queue.DeleteResult>;
-    close(): Promise<Queue.DeleteResult>;
-    bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-    unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-    prefetch(count): void;
-    recover(): Promise<void>;
+export declare class Binding {
+    initialized: Promise<Binding>;
+    _source: Exchange;
+    _destination: Exchange | Queue;
+    _pattern: string;
+    _args: any;
+    constructor(destination: Exchange | Queue, source: Exchange, pattern?: string, args?: any);
+    _initialize(): void;
+    delete(): Promise<void>;
+    static id(destination: Exchange | Queue, source: Exchange, pattern?: string): string;
+    static removeBindingsContaining(connectionPoint: Exchange | Queue): Promise<any>;
 }
-
-/**
- * winston Logger instance
- */
-export var log;
