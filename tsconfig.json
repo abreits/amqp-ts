@@ -7,6 +7,7 @@
     "outDir": "./transpiled",
     "declaration": true,
     "rootDir": "./src",
-    "sourceMap": true
+    "sourceMap": true,
+    "noImplicitAny": true
   }
 }
