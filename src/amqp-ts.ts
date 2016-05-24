@@ -96,7 +96,7 @@ export class Connection {
     return this.initialized;
   }
 
-  private tryToConnect(thisConnection: Connection,  retry: number, callback: (err: any) => void) {
+  private tryToConnect(thisConnection: Connection,  retry: number, callback: (err: any) => void): void {
     AmqpLib.connect(thisConnection.url, thisConnection.socketOptions, (err, connection) => {
       /* istanbul ignore if */
       if (err) {
@@ -316,7 +316,7 @@ export class Message {
     }
   }
 
-  setContent(content: any) {
+  setContent(content: any): void {
     if (typeof content === "string") {
       this.content = new Buffer(content);
     } else if (!(content instanceof Buffer)) {
@@ -335,7 +335,7 @@ export class Message {
     return content;
   }
 
-  sendTo(destination: Exchange | Queue, routingKey: string = "") {
+  sendTo(destination: Exchange | Queue, routingKey: string = ""): void {
     // inline function to send the message
     var sendMessage = () => {
       try {
@@ -373,19 +373,19 @@ export class Message {
     }
   }
 
-  ack(allUpTo?: boolean) {
+  ack(allUpTo?: boolean): void {
     if (this._channel !== undefined) {
       this._channel.ack(this._message, allUpTo);
     }
   }
 
-  nack(requeue?: boolean) {
+  nack(requeue?: boolean): void {
     if (this._channel !== undefined) {
       this._channel.nack(this._message, requeue);
     }
   }
 
-  reject(requeue?: boolean) {
+  reject(requeue?: boolean): void {
     if (this._channel !== undefined) {
       this._channel.reject(this._message, requeue);
     }
@@ -467,7 +467,7 @@ export class Exchange {
     });
   }
 
-  send(message: Message, routingKey = "") {
+  send(message: Message, routingKey = ""): void {
     message.sendTo(this, routingKey);
   }
 
@@ -676,7 +676,7 @@ export class Queue {
     this._initialize();
   }
 
-  _initialize() {
+  _initialize(): void {
     this.initialized = new Promise<Queue.InitializeResult>((resolve, reject) => {
       this._connection.initialized.then(() => {
         this._connection._connection.createChannel((err, channel) => {
@@ -725,7 +725,7 @@ export class Queue {
   /**
    * deprecated, use 'queue.send(message: Message)' instead
    */
-  publish(content: any, options: any = {}) {
+  publish(content: any, options: any = {}): void {
     // inline function to send the message
     var sendMessage = () => {
       try {
@@ -751,7 +751,7 @@ export class Queue {
     }
   }
 
-  send(message: Message, routingKey = "") {
+  send(message: Message, routingKey = ""): void {
     message.sendTo(this, routingKey);
   }
 
@@ -846,7 +846,7 @@ export class Queue {
     return this._consumerInitialized;
   }
 
-  _initializeConsumer() {
+  _initializeConsumer(): void {
     var processedMsgConsumer = (msg: AmqpLib.Message) => {
       try {
         /* istanbul ignore if */
@@ -1074,7 +1074,7 @@ export class Binding {
     this._initialize();
   }
 
-  _initialize() {
+  _initialize(): void {
     this.initialized = new Promise<Binding>((resolve, reject) => {
         if (this._destination instanceof Queue) {
           var queue = <Queue>this._destination;
