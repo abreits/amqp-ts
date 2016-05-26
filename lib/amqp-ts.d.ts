@@ -34,21 +34,21 @@ export declare namespace Connection {
         interval: number;
     }
     export interface Topology {
-        exchanges: {
-            name: string;
-            type?: string;
-            options?: any;
+        exchanges?: {
+            name: string,
+            type?: string,
+            options?: any
         }[];
-        queues: {
-            name: string;
-            options?: any;
+        queues?: {
+            name: string,
+            options?: any
         }[];
-        bindings: {
-            source: string;
-            queue?: string;
-            exchange?: string;
-            pattern?: string;
-            args?: any;
+        bindings?: {
+            source: string,
+            queue?: string,
+            exchange?: string,
+            pattern?: string,
+            args?: any
         }[];
     }
 }
