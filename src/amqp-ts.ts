@@ -96,7 +96,7 @@ export class Connection {
     return this.initialized;
   }
 
-  private tryToConnect(thisConnection: Connection,  retry: number, callback: (err: any) => void) {
+  private tryToConnect(thisConnection: Connection,  retry: number, callback: (err: any) => void): void {
     AmqpLib.connect(thisConnection.url, thisConnection.socketOptions, (err, connection) => {
       /* istanbul ignore if */
       if (err) {
@@ -115,7 +115,7 @@ export class Connection {
           callback(err);
         }
       } else {
-        var restart = (err) => {
+        var restart = (err: Error) => {
           amqpts_log.log("debug", "Connection error occurred.", {module: "amqp-ts"});
           connection.removeListener("error", restart);
           //connection.removeListener("end", restart); // not sure this is needed
@@ -130,7 +130,7 @@ export class Connection {
     });
   }
 
-  _rebuildAll(err): Promise<void> {
+  _rebuildAll(err: Error): Promise<void> {
     amqpts_log.log("warn", "Connection error: " + err.message, {module: "amqp-ts"});
 
     amqpts_log.log("debug", "Rebuilding connection NOW.", {module: "amqp-ts"});
@@ -192,7 +192,7 @@ export class Connection {
    * return promise that fulfills after all defined exchanges, queues and bindings are initialized
    */
   completeConfiguration(): Promise<any> {
-    var promises = [];
+    var promises: Promise<any>[] = [];
     for (var exchangeId in this._exchanges) {
       var exchange: Exchange = this._exchanges[exchangeId];
       promises.push(exchange.initialized);
@@ -216,7 +216,7 @@ export class Connection {
    * return promise that fulfills after all defined exchanges, queues and bindings have been removed
    */
   deleteConfiguration(): Promise<any> {
-    var promises = [];
+    var promises: Promise<any>[] = [];
     for (var bindingId in this._bindings) {
       var binding: Binding = this._bindings[bindingId];
       promises.push(binding.delete());
@@ -252,7 +252,7 @@ export class Connection {
   }
 
   declareTopology(topology: Connection.Topology): Promise<any> {
-    var promises = [];
+    var promises: Promise<any>[] = [];
     var i: number;
     var len: number;
 
@@ -272,7 +272,7 @@ export class Connection {
       for (i = 0, len = topology.bindings.length; i < len; i++) {
         var binding = topology.bindings[i];
         var source = this.declareExchange(binding.source);
-        var destination;
+        var destination: Queue | Exchange;
         if (binding.exchange !== undefined) {
           destination = this.declareExchange(binding.exchange);
         } else {
@@ -316,7 +316,7 @@ export class Message {
     }
   }
 
-  setContent(content: any) {
+  setContent(content: any): void {
     if (typeof content === "string") {
       this.content = new Buffer(content);
     } else if (!(content instanceof Buffer)) {
@@ -335,7 +335,7 @@ export class Message {
     return content;
   }
 
-  sendTo(destination: Exchange | Queue, routingKey: string = "") {
+  sendTo(destination: Exchange | Queue, routingKey: string = ""): void {
     // inline function to send the message
     var sendMessage = () => {
       try {
@@ -357,7 +357,7 @@ export class Message {
       }
     };
 
-    var exchange;
+    var exchange: string;
     if (destination instanceof Queue) {
       exchange = "";
       routingKey = destination._name;
@@ -373,19 +373,19 @@ export class Message {
     }
   }
 
-  ack(allUpTo?: boolean) {
+  ack(allUpTo?: boolean): void {
     if (this._channel !== undefined) {
       this._channel.ack(this._message, allUpTo);
     }
   }
 
-  nack(requeue?: boolean) {
+  nack(requeue?: boolean): void {
     if (this._channel !== undefined) {
       this._channel.nack(this._message, requeue);
     }
   }
 
-  reject(requeue?: boolean) {
+  reject(requeue?: boolean): void {
     if (this._channel !== undefined) {
       this._channel.reject(this._message, requeue);
     }
@@ -467,14 +467,14 @@ export class Exchange {
     });
   }
 
-  send(message: Message, routingKey = "") {
+  send(message: Message, routingKey = ""): void {
     message.sendTo(this, routingKey);
   }
 
   rpc(requestParameters: any, routingKey = ""): Promise<Message> {
     return new Promise<Message>((resolve, reject) => {
       var processRpc = () => {
-        var consumerTag;
+        var consumerTag: string;
         this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
           this._channel.cancel(consumerTag);
           var result = new Message(resultMsg.content, resultMsg.fields);
@@ -585,7 +585,7 @@ export class Exchange {
         reject(new Error("amqp-ts Exchange.startConsumer error: consumer already defined"));
       });
     } else {
-      var promises = [];
+      var promises: Promise<any>[] = [];
       var queue = this._connection.declareQueue(queueName, {durable: false});
       promises.push(queue.initialized);
       var binding = queue.bind(this);
@@ -604,7 +604,7 @@ export class Exchange {
         reject(new Error("amqp-ts Exchange.activateConsumer error: consumer already defined"));
       });
     } else {
-      var promises = [];
+      var promises: Promise<any>[] = [];
       var queue = this._connection.declareQueue(queueName, {durable: false});
       promises.push(queue.initialized);
       var binding = queue.bind(this);
@@ -620,7 +620,7 @@ export class Exchange {
     var queue = this._connection._queues[this.consumerQueueName()];
     if (queue) {
       var binding = this._connection._bindings[Binding.id(queue, this)];
-      var promises = [];
+      var promises: Promise<any>[] = [];
       promises.push(queue.stopConsumer());
       promises.push(binding.delete());
       promises.push(queue.delete());
@@ -676,7 +676,7 @@ export class Queue {
     this._initialize();
   }
 
-  _initialize() {
+  _initialize(): void {
     this.initialized = new Promise<Queue.InitializeResult>((resolve, reject) => {
       this._connection.initialized.then(() => {
         this._connection._connection.createChannel((err, channel) => {
@@ -704,7 +704,7 @@ export class Queue {
     });
   }
 
-  static _packMessageContent(content, options): Buffer {
+  static _packMessageContent(content: any, options: any): Buffer {
     if (typeof content === "string") {
       content = new Buffer(content);
     } else if (!(content instanceof Buffer)) {
@@ -725,7 +725,7 @@ export class Queue {
   /**
    * deprecated, use 'queue.send(message: Message)' instead
    */
-  publish(content: any, options: any = {}) {
+  publish(content: any, options: any = {}): void {
     // inline function to send the message
     var sendMessage = () => {
       try {
@@ -751,14 +751,14 @@ export class Queue {
     }
   }
 
-  send(message: Message, routingKey = "") {
+  send(message: Message, routingKey = ""): void {
     message.sendTo(this, routingKey);
   }
 
   rpc(requestParameters: any): Promise<Message> {
     return new Promise<Message>((resolve, reject) => {
       var processRpc = () => {
-        var consumerTag;
+        var consumerTag: string;
         this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
           this._channel.cancel(consumerTag);
           var result = new Message(resultMsg.content, resultMsg.fields);
@@ -846,7 +846,7 @@ export class Queue {
     return this._consumerInitialized;
   }
 
-  _initializeConsumer() {
+  _initializeConsumer(): void {
     var processedMsgConsumer = (msg: AmqpLib.Message) => {
       try {
         /* istanbul ignore if */
@@ -1074,7 +1074,7 @@ export class Binding {
     this._initialize();
   }
 
-  _initialize() {
+  _initialize(): void {
     this.initialized = new Promise<Binding>((resolve, reject) => {
         if (this._destination instanceof Queue) {
           var queue = <Queue>this._destination;
@@ -1153,7 +1153,7 @@ export class Binding {
 
   static removeBindingsContaining(connectionPoint: Exchange | Queue): Promise<any> {
     var connection = connectionPoint._connection;
-    var promises = [];
+    var promises: Promise<void>[] = [];
     for (var bindingId in connection._bindings) {
 
       var binding: Binding = connection._bindings[bindingId];
