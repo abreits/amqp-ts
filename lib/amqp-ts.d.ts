@@ -2,6 +2,32 @@
 
 import * as Promise from "bluebird";
 
+export declare var log: any;
+export declare class Connection {
+    initialized: Promise<void>;
+    private url;
+    private socketOptions;
+    private reconnectStrategy;
+    private connectedBefore;
+
+    constructor(url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy);
+    private rebuildConnection();
+    private tryToConnect(thisConnection, retry, callback);
+    close(): Promise<void>;
+    /**
+     * Make sure the whole defined connection topology is configured:
+     * return promise that fulfills after all defined exchanges, queues and bindings are initialized
+     */
+    completeConfiguration(): Promise<any>;
+    /**
+     * Delete the whole defined connection topology:
+     * return promise that fulfills after all defined exchanges, queues and bindings have been removed
+     */
+    deleteConfiguration(): Promise<any>;
+    declareExchange(name: string, type?: string, options?: Exchange.DeclarationOptions): Exchange;
+    declareQueue(name: string, options?: Queue.DeclarationOptions): Queue;
+    declareTopology(topology: Connection.Topology): Promise<any>;
+}
 export declare namespace Connection {
     interface ReconnectStrategy {
         retries: number;
@@ -26,39 +52,40 @@ export declare namespace Connection {
         }[];
     }
 }
-export class Connection {
-    initialized: Promise<void>;
+export declare class Message {
+    content: Buffer;
+    fields: any;
+    properties: any;
 
-    constructor(url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy);
-    private rebuildConnection();
-    private tryToConnect(retry, callback);
-    close(): Promise<void>;
-    /**
-      * Make sure the whole defined connection topology is configured:
-      * return promise that fulfills after all defined exchanges, queues and bindings are initialized
-      */
-    completeConfiguration(): Promise<void>;
-    /**
-      * Delete the whole defined connection topology:
-      * return promise that fulfills after all defined exchanges, queues and bindings have been removed
-      */
-    deleteConfiguration(): Promise<void>;
-    declareExchange(name: string, type?: string, options?: Exchange.DeclarationOptions): Exchange;
-    declareQueue(name: string, options?: Queue.DeclarationOptions): Queue;
-    declareTopology(topology: Connection.Topology): Promise<void>;
+    constructor(content?: any, options?: any);
+    setContent(content: any): void;
+    getContent(): any;
+    sendTo(destination: Exchange | Queue, routingKey?: string): void;
+    ack(allUpTo?: boolean): void;
+    nack(requeue?: boolean): void;
+    reject(requeue?: boolean): void;
 }
-export class Message {
-  content: Buffer;
-  fields: any;
-  properties: any;
+export declare class Exchange {
+    initialized: Promise<Exchange.InitializeResult>;
 
-  constructor (content?: any, options?: any);
-  setContent(content: any);
-  getContent(): any;
-  sendTo(destination: Exchange | Queue, routingKey?: string);
-  ack(allUpTo?: boolean);
-  nack(requeue?: boolean);
-  reject(requeue?: boolean);
+    constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions);
+    /**
+     * deprecated, use 'exchange.send(message: Message)' instead
+     */
+    publish(content: any, routingKey?: string, options?: any): void;
+    send(message: Message, routingKey?: string): void;
+    rpc(requestParameters: any, routingKey?: string): Promise<Message>;
+    delete(): Promise<void>;
+    close(): Promise<void>;
+    bind(source: Exchange, pattern?: string, args?: any): Promise<Binding>;
+    unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
+    consumerQueueName(): string;
+    /**
+     * deprecated, use 'exchange.activateConsumer(...)' instead
+     */
+    startConsumer(onMessage: (msg: any, channel?: any) => any, options?: Queue.StartConsumerOptions): Promise<any>;
+    activateConsumer(onMessage: (msg: Message) => any, options?: Queue.ActivateConsumerOptions): Promise<any>;
+    stopConsumer(): Promise<any>;
 }
 export declare namespace Exchange {
     interface DeclarationOptions {
@@ -72,27 +99,28 @@ export declare namespace Exchange {
         exchange: string;
     }
 }
-export class Exchange {
-    initialized: Promise<Exchange.InitializeResult>;
+export declare class Queue {
+    initialized: Promise<Queue.InitializeResult>;
 
-    constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions);
+    constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
     /**
-     * deprecated! use 'exchange.send(msg: Message, routingKey: string)' instead, will be removed in a next major release!
+     * deprecated, use 'queue.send(message: Message)' instead
      */
-    publish(content: any, routingKey?: string, options?: any): void;
+    publish(content: any, options?: any): void;
     send(message: Message, routingKey?: string): void;
     rpc(requestParameters: any): Promise<Message>;
-    delete(): Promise<void>;
-    close(): Promise<void>;
-    bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-    unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-    consumerQueueName(): string;
+    prefetch(count: number): void;
+    recover(): Promise<void>;
     /**
-     * deprecated! use 'exchange.activateConsumer(...)' instead, will be removed in a next major release!
+     * deprecated, use 'queue.activateConsumer(...)' instead
      */
-    startConsumer(onMessage: (msg: any, channel?: any) => any, options?: Queue.StartConsumerOptions): Promise<void>;
-    activateConsumer(onMessage: (message: Message) => any, options?: Queue.StartConsumerOptions): Promise<void>;
+    startConsumer(onMessage: (msg: any, channel?: any) => any, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult>;
+    activateConsumer(onMessage: (msg: Message) => any, options?: Queue.ActivateConsumerOptions): Promise<Queue.StartConsumerResult>;
     stopConsumer(): Promise<void>;
+    delete(): Promise<Queue.DeleteResult>;
+    close(): Promise<void>;
+    bind(source: Exchange, pattern?: string, args?: any): Promise<Binding>;
+    unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
 }
 export declare namespace Queue {
     interface DeclarationOptions {
@@ -106,7 +134,8 @@ export declare namespace Queue {
         maxLength?: number;
         prefetch?: number;
     }
-    interface ActivateConsumerOptions {
+    interface StartConsumerOptions {
+        rawMessage?: boolean;
         consumerTag?: string;
         noLocal?: boolean;
         noAck?: boolean;
@@ -114,8 +143,7 @@ export declare namespace Queue {
         priority?: number;
         arguments?: Object;
     }
-    interface StartConsumerOptions {
-        rawMessage?: boolean;
+    interface ActivateConsumerOptions {
         consumerTag?: string;
         noLocal?: boolean;
         noAck?: boolean;
@@ -135,31 +163,11 @@ export declare namespace Queue {
         messageCount: number;
     }
 }
-export class Queue {
-    initialized: Promise<Queue.InitializeResult>;
+export declare class Binding {
+    initialized: Promise<Binding>;
 
-    constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
-    /**
-     * deprecated! use 'exchange.send(msg: Message, routingKey: string)' instead, will be removed in a next major release!
-     */
-    publish(content: any, options?: any): void;
-    send(message: Message, routingKey?: string): void;
-    rpc(requestParameters: any): Promise<Message>;
-    /**
-     * deprecated! use 'queue.activateConsumer(...)' instead, will be removed in a next major release!
-     */
-    startConsumer(onMessage: (msg: any, channel?: any) => any, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult>;
-    activateConsumer(onMessage: (message: Message) => any, options?: Queue.StartConsumerOptions): Promise<void>;
-    stopConsumer(): Promise<void>;
-    delete(): Promise<Queue.DeleteResult>;
-    close(): Promise<Queue.DeleteResult>;
-    bind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-    unbind(source: Exchange, pattern?: string, args?: any): Promise<void>;
-    prefetch(count): void;
-    recover(): Promise<void>;
+    constructor(destination: Exchange | Queue, source: Exchange, pattern?: string, args?: any);
+    delete(): Promise<void>;
+    static id(destination: Exchange | Queue, source: Exchange, pattern?: string): string;
+    static removeBindingsContaining(connectionPoint: Exchange | Queue): Promise<any>;
 }
-
-/**
- * winston Logger instance
- */
-export var log;
