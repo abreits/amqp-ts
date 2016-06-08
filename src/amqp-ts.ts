@@ -858,8 +858,20 @@ export class Queue {
         // check if there is a reply-to
         if (msg.properties.replyTo) {
           var options: any = {};
-          result = Queue._packMessageContent(result, options);
-          this._channel.sendToQueue(msg.properties.replyTo, result, options);
+         if(result instanceof Promise) {
+            result.then((res:any) => {
+              result = Queue._packMessageContent(res, options);
+              this._channel.sendToQueue(msg.properties.replyTo, result, options);
+            },
+            (err:any) => {
+              options.isError = true;
+              result = Queue._packMessageContent(err, options);
+              this._channel.sendToQueue(msg.properties.replyTo, result, options);
+            });
+          } else {
+            result = Queue._packMessageContent(result, options);
+            this._channel.sendToQueue(msg.properties.replyTo, result, options);
+          }
         }
 
         if (this._consumerOptions.noAck !== true) {
