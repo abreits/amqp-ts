@@ -30,6 +30,9 @@ export var log = amqpts_log;
 // name for the RabbitMQ direct reply-to queue
 const DIRECT_REPLY_TO_QUEUE = "amq.rabbitmq.reply-to";
 
+// utility method
+const isPromise:(obj:any) => boolean = (obj:any) => obj && obj.toString() === "[object Promise]";
+
 //----------------------------------------------------------------------------------------------------
 // Connection class
 //----------------------------------------------------------------------------------------------------
@@ -763,6 +766,9 @@ export class Queue {
           this._channel.cancel(consumerTag);
           var result = new Message(resultMsg.content, resultMsg.fields);
           result.fields = resultMsg.fields;
+          if (resultMsg.fields.isError) {
+            return reject(result);
+          }
           resolve(result);
           //resolve(Queue._unpackMessageContent(result));
         }, {noAck: true}, (err, ok) => {
@@ -848,29 +854,32 @@ export class Queue {
 
   _initializeConsumer(): void {
     var processedMsgConsumer = (msg: AmqpLib.Message) => {
+
+      const _sendToQueue = (result:any, options:any) => {
+        result = Queue._packMessageContent(result, options);
+        this._channel.sendToQueue(msg.properties.replyTo, result, options);
+      };
+
       try {
         /* istanbul ignore if */
         if (!msg) {
           return; // ignore empty messages (for now)
         }
-        var payload = Queue._unpackMessageContent(msg);
-        var result = this._consumer(payload);
+        let payload = Queue._unpackMessageContent(msg);
+        let result = this._consumer(payload);
         // check if there is a reply-to
         if (msg.properties.replyTo) {
-          var options: any = {};
-         if(result instanceof Promise) {
-            result.then((res:any) => {
-              result = Queue._packMessageContent(res, options);
-              this._channel.sendToQueue(msg.properties.replyTo, result, options);
-            },
-            (err:any) => {
-              options.isError = true;
-              result = Queue._packMessageContent(err, options);
-              this._channel.sendToQueue(msg.properties.replyTo, result, options);
-            });
+          let options:any = {};
+          if (isPromise(result)) {
+            result.then(
+              (res:any) => _sendToQueue(res, options),
+              (err:any) => {
+                options.isError = true;
+                _sendToQueue(err, options);
+              }
+            );
           } else {
-            result = Queue._packMessageContent(result, options);
-            this._channel.sendToQueue(msg.properties.replyTo, result, options);
+            _sendToQueue(result, options);
           }
         }
 
@@ -893,6 +902,14 @@ export class Queue {
     };
 
     var activateConsumerWrapper = (msg: AmqpLib.Message) => {
+
+      const _sendToQueue = (result:any, isError:boolean = false) => {
+        if (!(result instanceof Message)) {
+          result = new Message(result, {});
+        }
+        this._channel.sendToQueue(msg.properties.replyTo, result.content, isError ? {isError: true} : result.properties);
+      };
+
       try {
         var message = new Message(msg.content, msg.properties);
         message.fields = msg.fields;
@@ -901,10 +918,14 @@ export class Queue {
         var result = this._consumer(message);
         // check if there is a reply-to
         if (msg.properties.replyTo) {
-          if (!(result instanceof Message)) {
-            result = new Message(result, {});
+          if(isPromise(result)) {
+            result.then(
+              (res:any) => _sendToQueue(res),
+              (err:any) => _sendToQueue(err, true)
+            );
+          } else {
+            _sendToQueue(result);
           }
-          this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
         }
       } catch (err) {
         /* istanbul ignore next */
