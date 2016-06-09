@@ -913,7 +913,7 @@ export class Queue {
         if(!result.properties.headers) {
           result.properties.headers = {};
         }
-        result.properties.headers.isErorr = isError;
+        result.properties.headers.isError = isError;
         this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
       };
 
