@@ -482,6 +482,9 @@ export class Exchange {
           this._channel.cancel(consumerTag);
           var result = new Message(resultMsg.content, resultMsg.fields);
           result.fields = resultMsg.fields;
+          if (resultMsg.properties.headers && resultMsg.properties.headers.isError) {
+            return reject(result);
+          }
           resolve(result);
           //resolve(Queue._unpackMessageContent(result));
         }, {noAck: true}, (err, ok) => {
@@ -766,7 +769,7 @@ export class Queue {
           this._channel.cancel(consumerTag);
           var result = new Message(resultMsg.content, resultMsg.fields);
           result.fields = resultMsg.fields;
-          if (resultMsg.fields.isError) {
+          if (resultMsg.properties.headers && resultMsg.properties.headers.isError) {
             return reject(result);
           }
           resolve(result);
@@ -874,7 +877,7 @@ export class Queue {
             result.then(
               (res:any) => _sendToQueue(res, options),
               (err:any) => {
-                options.isError = true;
+                options.headers = {isError:true};
                 _sendToQueue(err, options);
               }
             );
@@ -907,7 +910,11 @@ export class Queue {
         if (!(result instanceof Message)) {
           result = new Message(result, {});
         }
-        this._channel.sendToQueue(msg.properties.replyTo, result.content, isError ? {isError: true} : result.properties);
+        if(!result.properties.headers) {
+          result.properties.headers = {};
+        }
+        result.properties.headers.isErorr = isError;
+        this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
       };
 
       try {
