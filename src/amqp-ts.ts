@@ -480,7 +480,7 @@ export class Exchange {
         var consumerTag: string;
         this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
           this._channel.cancel(consumerTag);
-          var result = new Message(resultMsg.content, resultMsg.fields);
+          var result = new Message(resultMsg.content, resultMsg.properties);
           result.fields = resultMsg.fields;
           if (resultMsg.properties.headers && resultMsg.properties.headers.isError) {
             return reject(result);
@@ -767,7 +767,7 @@ export class Queue {
         var consumerTag: string;
         this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
           this._channel.cancel(consumerTag);
-          var result = new Message(resultMsg.content, resultMsg.fields);
+          var result = new Message(resultMsg.content, resultMsg.properties);
           result.fields = resultMsg.fields;
           if (resultMsg.properties.headers && resultMsg.properties.headers.isError) {
             return reject(result);
