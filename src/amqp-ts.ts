@@ -478,26 +478,31 @@ export class Exchange {
     return new Promise<Message>((resolve, reject) => {
       var processRpc = () => {
         var consumerTag: string;
-        this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
-          this._channel.cancel(consumerTag);
-          var result = new Message(resultMsg.content, resultMsg.properties);
-          result.fields = resultMsg.fields;
-          if (resultMsg.properties.headers && resultMsg.properties.headers.isError) {
-            return reject(result);
-          }
-          resolve(result);
-          //resolve(Queue._unpackMessageContent(result));
-        }, {noAck: true}, (err, ok) => {
-          /* istanbul ignore if */
-          if (err) {
-            reject(new Error("amqp-ts: Queue.rpc error: " + err.message));
-          } else {
-            // send the rpc request
-            consumerTag = ok.consumerTag;
-            var message = new Message(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
-            message.sendTo(this, routingKey);
-          }
+
+        this._channel.assertQueue('', {autoDelete: true, exclusive: true}, (err:any, qok:any) =>  {
+          this._channel.consume(qok.queue, (resultMsg) => {
+            this._channel.cancel(consumerTag);
+            // this._channel.deleteQueue(qok.queue);
+            var result = new Message(resultMsg.content, resultMsg.properties);
+            result.fields = resultMsg.fields;
+            if (resultMsg.properties.headers && resultMsg.properties.headers.isError) {
+              return reject(result);
+            }
+            resolve(result);
+            //resolve(Queue._unpackMessageContent(result));
+          }, {noAck: true}, (err, ok) => {
+            /* istanbul ignore if */
+            if (err) {
+              reject(new Error("amqp-ts: Queue.rpc error: " + err.message));
+            } else {
+              // send the rpc request
+              consumerTag = ok.consumerTag;
+              var message = new Message(requestParameters, {replyTo: qok.queue});
+              message.sendTo(this, routingKey);
+            }
+          });
         });
+
       };
 
       // execute sync when possible
