@@ -23,7 +23,7 @@ var testQueueNamePrefix = process.env.AMQPTEST_QUEUE_PREFIX || "TestQueue_";
 Amqp.log.transports.console.level = LogLevel;
 
 /* istanbul ignore next */
-describe("Test amqp-ts module", function() {
+describe("Test amqp-ts module", function () {
   this.timeout(UnitTestTimeout); // define default timeout
 
   // create unique queues and exchanges for each test so they do not interfere with each other
@@ -41,7 +41,7 @@ describe("Test amqp-ts module", function() {
   // keep track of the created connections for cleanup
   var connections: Amqp.Connection[] = [];
   function getAmqpConnection() {
-    var conn = new Amqp.Connection(ConnectionUrl);
+    var conn = new Amqp.Connection(ConnectionUrl, {}, { retries: 5, interval: 1500 });
     connections.push(conn);
     return conn;
   }
@@ -77,15 +77,15 @@ describe("Test amqp-ts module", function() {
       // test code
       var connection = getAmqpConnection();
       // check result
-      connection.initialized.then(() => { // successfully create the AMQP connection
-        connection.close().then(() => { // successfully close the AMQP connection
-          done();
-        }, () => { // failed to close the AMQP connection
-          done(new Error("Failed to close the new AMQP Connection"));
+      connection.initialized
+        .then(() => { // successfully create the AMQP connection
+          connection.close().then(() => { // successfully close the AMQP connection
+            done();
+          });
+        })
+        .catch(() => { // failed to create the AMQP connection
+          done(new Error("Failed to create a new AMQP Connection."));
         });
-      }, () => { // failed to create the AMQP connection
-        done(new Error("Failed to create a new AMQP Connection."));
-      });
     });
   });
 

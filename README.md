@@ -109,6 +109,9 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 1.0.1
+ - fixed bug in automatic reconnect (exponential growth of retries hanging the application)
+
 ### version 1.0.0
  - updated typescript definition file management from [tsd](https://github.com/DefinitelyTyped/tsd) to [typings](https://github.com/typings/typings)
  - added [queue.prefetch](https://github.com/abreits/amqp-ts/wiki/Queue class#prefetch) and [queue.recover](https://github.com/abreits/amqp-ts/wiki/Queue class#recover) methods

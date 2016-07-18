@@ -42,6 +42,7 @@ export class Connection {
   private connectedBefore = false;
 
   _connection: AmqpLib.Connection;
+  _retry: number;
   _rebuilding: boolean = false;
 
   _exchanges: {[id: string] : Exchange};
@@ -66,6 +67,7 @@ export class Connection {
       amqpts_log.log("debug", "Connection rebuild already in progress, joining active rebuild attempt.", {module: "amqp-ts"});
       return this.initialized;
     }
+    this._retry = -1;
     this._rebuilding = true;
 
     // rebuild the connection
@@ -90,7 +92,7 @@ export class Connection {
     /* istanbul ignore next */
     this.initialized.catch((err) => {
       amqpts_log.log("warn", "Error creating connection!", {module: "amqp-ts"});
-      throw (err);
+      //throw (err);
     });
 
     return this.initialized;
@@ -100,7 +102,14 @@ export class Connection {
     AmqpLib.connect(thisConnection.url, thisConnection.socketOptions, (err, connection) => {
       /* istanbul ignore if */
       if (err) {
+        // only do every retry once, amqplib can return multiple connection errors for one connection request (error?)
+        if (retry <= this._retry) {
+          //amqpts_log.log("warn" , "Double retry " + retry + ", skipping.", {module: "amqp-ts"});
+          return;
+        }
+
         amqpts_log.log("warn" , "Connection failed.", {module: "amqp-ts"});
+        this._retry = retry;
         if (thisConnection.reconnectStrategy.retries === 0 || thisConnection.reconnectStrategy.retries > retry) {
           amqpts_log.log("warn", "Connection retry " + (retry + 1) + " in " + thisConnection.reconnectStrategy.interval + "ms",
                          {module: "amqp-ts"});
