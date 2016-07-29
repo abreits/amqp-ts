@@ -1,0 +1,16 @@
+version: '2'
+services:
+  dev:
+    container_name: "dev-amqp-ts"
+    build: .
+    ports:
+     - "5858:5858"
+    volumes:
+     - ".:/src"
+    depends_on:
+     - "rabbitmq"
+    links:
+     - "rabbitmq"
+  rabbitmq:
+    container_name: "rabbitmq"
+    image: rabbitmq:3

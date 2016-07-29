@@ -1,0 +1,36 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "0.1.0",
+    "command": "docker",
+    "isShellCommand": true,
+    "args": [
+        "exec",
+        "dev-amqp-ts"
+    ],
+    "showOutput": "always",
+    "tasks": [
+        {
+            "taskName": "build",
+            "suppressTaskName": true,
+            "isBuildCommand": true,
+            "isWatching": false,
+            "args": [
+                "gulp"
+            ]
+        },
+        {
+            "taskName": "debug",
+            "suppressTaskName": true,
+            "isBuildCommand": false,
+            "isWatching": false,
+            "args": [
+                "node",
+                "--debug-brk",
+                "--nolazy",
+                "/src/node_modules/mocha/bin/_mocha",
+                "transpiled/amqp-ts.spec.js"
+            ]
+        }
+    ]
+}

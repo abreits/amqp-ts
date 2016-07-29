@@ -1,0 +1,93 @@
+{
+	"version": "0.1.0",
+	// List of configurations. Add new configurations or edit existing ones.
+	"configurations": [
+		{
+			"request": "launch",
+			// Name of configuration; appears in the launch configuration drop down menu.
+			"name": "Run killTest",
+			// Type of configuration.
+			"type": "node",
+			// Workspace relative or absolute path to the program.
+			"program": "${workspaceRoot}/transpiled/killTest.js",
+			// Automatically stop program after launch.
+			"stopOnEntry": false,
+			// Command line arguments passed to the program.
+			"args": [],
+			// Workspace relative or absolute path to the working directory of the program being debugged. Default is the current workspace.
+			"cwd": "${workspaceRoot}/",
+			// Workspace relative or absolute path to the runtime executable to be used. Default is the runtime executable on the PATH.
+			"runtimeExecutable": null,
+			// Optional arguments passed to the runtime executable.
+			"runtimeArgs": [
+				"--nolazy"
+			],
+			// Environment variables passed to the program.
+			"env": {
+				"NODE_ENV": "development"
+			},
+			// Use JavaScript source maps (if they exist).
+			"sourceMaps": false,
+			// If JavaScript source maps are enabled, the generated code is expected in this directory.
+			"outDir": null
+		},
+		{
+			"request": "launch",
+			// Name of configuration; appears in the launch configuration drop down menu.
+			"name": "Run mocha",
+			// Type of configuration. Possible values: "node", "mono".
+			"type": "node",
+			// Workspace relative or absolute path to the program.
+			"program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
+			// Automatically stop program after launch.
+			"stopOnEntry": false,
+			// Command line arguments passed to the program.
+			"args": [
+				"transpiled/amqp-ts.spec.js"
+			],
+			// Workspace relative or absolute path to the working directory of the program being debugged. Default is the current workspace.
+			"cwd": "${workspaceRoot}/",
+			// Workspace relative or absolute path to the runtime executable to be used. Default is the runtime executable on the PATH.
+			"runtimeExecutable": null,
+			// Environment variables passed to the program.
+			"env": {
+				"NODE_ENV": "production"
+			}
+		},
+		{
+			"request": "launch",
+			// Name of configuration; appears in the launch configuration drop down menu.
+			"name": "Run mocha integration",
+			// Type of configuration. Possible values: "node", "mono".
+			"type": "node",
+			// Workspace relative or absolute path to the program.
+			"program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
+			// Automatically stop program after launch.
+			"stopOnEntry": false,
+			// Command line arguments passed to the program.
+			"args": [
+				"transpiled/amqp-ts.spec-i.js"
+			],
+			// Workspace relative or absolute path to the working directory of the program being debugged. Default is the current workspace.
+			"cwd": "${workspaceRoot}/",
+			// Workspace relative or absolute path to the runtime executable to be used. Default is the runtime executable on the PATH.
+			"runtimeExecutable": null,
+			// Environment variables passed to the program.
+			"env": {
+				"NODE_ENV": "production"
+			}
+		},
+		{
+			"request": "attach",
+			"name": "Attach",
+			"type": "node",
+			// TCP/IP address. Default is "localhost".
+			"address": "localhost",
+			// Port to attach to.
+			"port": 5858,
+			"sourceMaps": true,
+			"remoteRoot": "/src/",
+			"localRoot": "${workspaceRoot}/"
+		}
+	]
+}
