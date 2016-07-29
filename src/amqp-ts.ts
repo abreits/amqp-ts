@@ -30,6 +30,9 @@ export var log = amqpts_log;
 // name for the RabbitMQ direct reply-to queue
 const DIRECT_REPLY_TO_QUEUE = "amq.rabbitmq.reply-to";
 
+// utility method
+const isPromise:(obj:any) => boolean = (obj:any) => obj && obj.toString() === "[object Promise]";
+
 //----------------------------------------------------------------------------------------------------
 // Connection class
 //----------------------------------------------------------------------------------------------------
@@ -484,23 +487,31 @@ export class Exchange {
     return new Promise<Message>((resolve, reject) => {
       var processRpc = () => {
         var consumerTag: string;
-        this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
-          this._channel.cancel(consumerTag);
-          var result = new Message(resultMsg.content, resultMsg.fields);
-          result.fields = resultMsg.fields;
-          resolve(result);
-          //resolve(Queue._unpackMessageContent(result));
-        }, {noAck: true}, (err, ok) => {
-          /* istanbul ignore if */
-          if (err) {
-            reject(new Error("amqp-ts: Queue.rpc error: " + err.message));
-          } else {
-            // send the rpc request
-            consumerTag = ok.consumerTag;
-            var message = new Message(requestParameters, {replyTo: DIRECT_REPLY_TO_QUEUE});
-            message.sendTo(this, routingKey);
-          }
+
+        this._channel.assertQueue('', {autoDelete: true, exclusive: true}, (err:any, qok:any) =>  {
+          this._channel.consume(qok.queue, (resultMsg) => {
+            this._channel.cancel(consumerTag);
+            // this._channel.deleteQueue(qok.queue);
+            var result = new Message(resultMsg.content, resultMsg.properties);
+            result.fields = resultMsg.fields;
+            if (resultMsg.properties.headers && resultMsg.properties.headers.isError) {
+              return reject(result);
+            }
+            resolve(result);
+            //resolve(Queue._unpackMessageContent(result));
+          }, {noAck: true}, (err, ok) => {
+            /* istanbul ignore if */
+            if (err) {
+              reject(new Error("amqp-ts: Queue.rpc error: " + err.message));
+            } else {
+              // send the rpc request
+              consumerTag = ok.consumerTag;
+              var message = new Message(requestParameters, {replyTo: qok.queue});
+              message.sendTo(this, routingKey);
+            }
+          });
         });
+
       };
 
       // execute sync when possible
@@ -770,8 +781,11 @@ export class Queue {
         var consumerTag: string;
         this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
           this._channel.cancel(consumerTag);
-          var result = new Message(resultMsg.content, resultMsg.fields);
+          var result = new Message(resultMsg.content, resultMsg.properties);
           result.fields = resultMsg.fields;
+          if (resultMsg.properties.headers && resultMsg.properties.headers.isError) {
+            return reject(result);
+          }
           resolve(result);
           //resolve(Queue._unpackMessageContent(result));
         }, {noAck: true}, (err, ok) => {
@@ -857,18 +871,33 @@ export class Queue {
 
   _initializeConsumer(): void {
     var processedMsgConsumer = (msg: AmqpLib.Message) => {
+
+      const _sendToQueue = (result:any, options:any) => {
+        result = Queue._packMessageContent(result, options);
+        this._channel.sendToQueue(msg.properties.replyTo, result, options);
+      };
+
       try {
         /* istanbul ignore if */
         if (!msg) {
           return; // ignore empty messages (for now)
         }
-        var payload = Queue._unpackMessageContent(msg);
-        var result = this._consumer(payload);
+        let payload = Queue._unpackMessageContent(msg);
+        let result = this._consumer(payload);
         // check if there is a reply-to
         if (msg.properties.replyTo) {
-          var options: any = {};
-          result = Queue._packMessageContent(result, options);
-          this._channel.sendToQueue(msg.properties.replyTo, result, options);
+          let options:any = {};
+          if (isPromise(result)) {
+            result.then(
+              (res:any) => _sendToQueue(res, options),
+              (err:any) => {
+                options.headers = {isError:true};
+                _sendToQueue(err, options);
+              }
+            );
+          } else {
+            _sendToQueue(result, options);
+          }
         }
 
         if (this._consumerOptions.noAck !== true) {
@@ -890,6 +919,18 @@ export class Queue {
     };
 
     var activateConsumerWrapper = (msg: AmqpLib.Message) => {
+
+      const _sendToQueue = (result:any, isError:boolean = false) => {
+        if (!(result instanceof Message)) {
+          result = new Message(result, {});
+        }
+        if(!result.properties.headers) {
+          result.properties.headers = {};
+        }
+        result.properties.headers.isError = isError;
+        this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
+      };
+
       try {
         var message = new Message(msg.content, msg.properties);
         message.fields = msg.fields;
@@ -898,10 +939,14 @@ export class Queue {
         var result = this._consumer(message);
         // check if there is a reply-to
         if (msg.properties.replyTo) {
-          if (!(result instanceof Message)) {
-            result = new Message(result, {});
+          if(isPromise(result)) {
+            result.then(
+              (res:any) => _sendToQueue(res),
+              (err:any) => _sendToQueue(err, true)
+            );
+          } else {
+            _sendToQueue(result);
           }
-          this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
         }
       } catch (err) {
         /* istanbul ignore next */
