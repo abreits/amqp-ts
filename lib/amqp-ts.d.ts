@@ -105,6 +105,7 @@ export declare namespace Queue {
         expires?: number;
         deadLetterExchange?: string;
         maxLength?: number;
+        prefetch?: number;
     }
     interface StartConsumerOptions {
         rawMessage?: boolean;
