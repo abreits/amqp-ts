@@ -5,7 +5,7 @@
 #
 # to start the development process with docker
 #  $ docker run -d --hostname rabbitmq --name rabbitmq rabbitmq:3
-#  $ docker run --name amqp-ts -p 5858:5858 amqp-ts
+#  $
 #  $ docker run --name dev-amqp-ts -d -v <absolute_local_amqp-ts_path>:/src --link rabbitmq amqp-ts
 # or to start development with docker-compose (does the hard work for you)
 #  $ docker-compose up -d

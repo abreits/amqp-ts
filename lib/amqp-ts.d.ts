@@ -56,7 +56,7 @@ export declare class Message {
     getContent(): any;
     sendTo(destination: Exchange | Queue, routingKey?: string): void;
     ack(allUpTo?: boolean): void;
-    nack(requeue?: boolean): void;
+    nack(allUpTo?: boolean, requeue?: boolean): void;
     reject(requeue?: boolean): void;
 }
 

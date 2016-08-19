@@ -388,13 +388,13 @@ export class Message {
     }
   }
 
-  nack(requeue?: boolean): void {
+  nack(allUpTo?: boolean, requeue?: boolean): void {
     if (this._channel !== undefined) {
-      this._channel.nack(this._message, requeue);
+      this._channel.nack(this._message, allUpTo, requeue);
     }
   }
 
-  reject(requeue?: boolean): void {
+  reject(requeue = false): void {
     if (this._channel !== undefined) {
       this._channel.reject(this._message, requeue);
     }

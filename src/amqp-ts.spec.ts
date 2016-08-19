@@ -441,6 +441,40 @@ describe("Test amqp-ts module", function () {
       });
     });
 
+    it("should create not resend a nack(false) message", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+      var nacked = false;
+
+      queue.activateConsumer((message) => {
+        try {
+          if (nacked) {
+            expect(message.getContent()).equals("Test Finished");
+            message.ack();
+            cleanup(connection, done);
+          } else {
+            expect(message.getContent()).equals("Test");
+            message.nack(false, false);
+            nacked = true;
+            var msg = new Amqp.Message("Test Finished");
+            queue.send(msg);
+          }
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      });
+
+      connection.completeConfiguration().then(() => {
+        var msg = new Amqp.Message("Test");
+        queue.send(msg);
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
     it("should create a Queue and send and receive a simple text Message with reject", function (done) {
       // initialize
       var connection = getAmqpConnection();
@@ -1165,7 +1199,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-        it("should recover to a queue", function(done) {
+    it("should recover to a queue", function(done) {
       // initialize
       var connection = getAmqpConnection();
 
