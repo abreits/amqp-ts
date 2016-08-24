@@ -109,6 +109,9 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 1.1.1
+ - added the `prefetch` option to `DeclarationOptions` in the `amqp-ts.d.ts` file
+
 ### version 1.1.0
  - fixed incorrect implementation of nack, syntax is now in line with [amqplib nack](http://www.squaremobius.net/amqp.node/channel_api.html#channel_nack)
 
