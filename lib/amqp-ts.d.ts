@@ -75,7 +75,9 @@ export declare namespace Exchange {
 
 export declare class Exchange {
     initialized: Promise<Exchange.InitializeResult>;
-    constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
+    name: string;
+    type: string;
+    constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions);
     /**
      * deprecated, use 'exchange.send(message: Message)' instead
      */
@@ -95,6 +97,7 @@ export declare class Exchange {
     activateConsumer(onMessage: (msg: Message) => any, options?: Queue.ActivateConsumerOptions): Promise<any>;
     stopConsumer(): Promise<any>;
 }
+
 export declare namespace Queue {
     interface DeclarationOptions {
         exclusive?: boolean;
@@ -139,6 +142,7 @@ export declare namespace Queue {
 
 export declare class Queue {
     initialized: Promise<Queue.InitializeResult>;
+    name: string;
 
     constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
     /**

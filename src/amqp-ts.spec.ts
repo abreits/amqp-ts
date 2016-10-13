@@ -361,6 +361,48 @@ describe("Test amqp-ts module", function () {
      * This is however not very practical in this situation, because we would have to test the same features over and over
      * We will however try to identify test failures as specific as possible
      */
+
+   it("should create a Queue with specified name", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queueName = nextQueueName();
+      var queue = connection.declareQueue(queueName);
+
+      connection.completeConfiguration().then(() => {
+        try {
+          expect(queue.name).equals(queueName);
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
+    it("should create an Exchange with specified name and type", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchangeName = nextExchangeName();
+      var exchange = connection.declareExchange(exchangeName, "fanout");
+
+      connection.completeConfiguration().then(() => {
+        try {
+          expect(exchange.name).equals(exchangeName);
+          expect(exchange.type).equals("fanout");
+          cleanup(connection, done);
+        } catch (err) {
+          cleanup(connection, done, err);
+        }
+      }, (err) => { // failed to configure the defined topology
+        done(err);
+      });
+    });
+
     it("should create a Queue and send and receive a simple text Message", function (done) {
       // initialize
       var connection = getAmqpConnection();

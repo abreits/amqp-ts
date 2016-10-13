@@ -417,6 +417,14 @@ export class Exchange {
   _deleting: Promise<void>;
   _closing: Promise<void>;
 
+  get name() {
+    return this._name;
+  }
+
+    get type() {
+    return this._type;
+  }
+
   constructor (connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions) {
     this._connection = connection;
     this._name = name;
@@ -676,6 +684,10 @@ export class Queue {
   _consumerInitialized: Promise<Queue.StartConsumerResult>;
   _deleting: Promise<Queue.DeleteResult>;
   _closing: Promise<void>;
+
+  get name() {
+    return this._name;
+  }
 
   constructor (connection: Connection, name: string, options?: Queue.DeclarationOptions) {
     this._connection = connection;
