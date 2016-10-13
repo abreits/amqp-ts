@@ -157,7 +157,7 @@ describe("Test amqp-ts module", function () {
         }
       };
 
-      queue.startConsumer(rawConsumer, {rawMessage: true});
+      queue.startConsumer(rawConsumer, { rawMessage: true });
 
       connection.completeConfiguration().then(() => {
         queue.publish("Test");
@@ -182,7 +182,7 @@ describe("Test amqp-ts module", function () {
         }
       };
 
-      queue.startConsumer(rawConsumer, {rawMessage: true});
+      queue.startConsumer(rawConsumer, { rawMessage: true });
 
       connection.completeConfiguration().then(() => {
         queue.publish("Test");
@@ -318,7 +318,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should generate an error when stopping a non existing Exchange consumer", (done) => {
+    it("should not generate an error when stopping a non existing Exchange consumer", (done) => {
       // initialize
       var connection = getAmqpConnection();
 
@@ -330,13 +330,14 @@ describe("Test amqp-ts module", function () {
       });
       exchange1.stopConsumer().then(() => {
         return exchange1.stopConsumer();
-      }).catch((err) => {
-        expect(err.message).equals("amqp-ts Exchange.cancelConsumer error: no consumer defined");
+      }).then(() => {
         cleanup(connection, done);
+      }).catch((err) => {
+        cleanup(connection, done, err);
       });
     });
 
-    it("should generate an error when stopping a non existing Queue consumer", (done) => {
+    it("should not generate an error when stopping a non existing Queue consumer", (done) => {
       // initialize
       var connection = getAmqpConnection();
 
@@ -346,11 +347,13 @@ describe("Test amqp-ts module", function () {
       queue.startConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
       });
+
       queue.stopConsumer().then(() => {
         return queue.stopConsumer();
-      }).catch((err) => {
-        expect(err.message).equals("amqp-ts Queue.cancelConsumer error: no consumer defined");
+      }).then(() => {
         cleanup(connection, done);
+      }).catch((err) => {
+        cleanup(connection, done, err);
       });
     });
   });
@@ -362,7 +365,7 @@ describe("Test amqp-ts module", function () {
      * We will however try to identify test failures as specific as possible
      */
 
-   it("should create a Queue with specified name", function (done) {
+    it("should create a Queue with specified name", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -417,7 +420,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message("Test");
@@ -559,7 +562,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message(testObj);
@@ -621,7 +624,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message("Test");
@@ -650,7 +653,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message(testObj);
@@ -673,7 +676,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message("Test");
@@ -701,7 +704,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message("Test");
@@ -728,7 +731,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true}).catch((err) => {
+      }, { noAck: true }).catch((err) => {
         console.log("Consumer intialization FAILED!!!");
         done(err);
       });
@@ -762,7 +765,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true}).catch((err) => {
+      }, { noAck: true }).catch((err) => {
         console.log("Consumer intialization FAILED!!!");
         done(err);
       });
@@ -805,7 +808,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message("Test");
@@ -837,7 +840,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
 
       connection.completeConfiguration().then(() => {
         var msg = new Amqp.Message("Test");
@@ -861,7 +864,7 @@ describe("Test amqp-ts module", function () {
       });
       queue.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      }, {noAck: true}).catch((err) => {
+      }, { noAck: true }).catch((err) => {
         expect(err.message).equal("amqp-ts Queue.activateConsumer error: consumer already defined");
         cleanup(connection, done);
       });
@@ -879,7 +882,7 @@ describe("Test amqp-ts module", function () {
       });
       exchange1.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      }, {noAck: true}).catch((err) => {
+      }, { noAck: true }).catch((err) => {
         expect(err.message).equal("amqp-ts Exchange.activateConsumer error: consumer already defined");
         cleanup(connection, done);
       });
@@ -894,13 +897,13 @@ describe("Test amqp-ts module", function () {
 
       exchange1.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      }, {noAck: true});
+      }, { noAck: true });
       exchange1.stopConsumer().then(() => {
         cleanup(connection, done);
       });
     });
 
-    it("should generate an error when stopping a non existing Exchange consumer", (done) => {
+    it("should not generate an error when stopping a non existing Exchange consumer", (done) => {
       // initialize
       var connection = getAmqpConnection();
 
@@ -909,16 +912,18 @@ describe("Test amqp-ts module", function () {
 
       exchange1.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      }, {noAck: true});
+      }, { noAck: true });
       exchange1.stopConsumer().then(() => {
         return exchange1.stopConsumer();
-      }).catch((err) => {
-        expect(err.message).equals("amqp-ts Exchange.cancelConsumer error: no consumer defined");
+      }).then(() => {
         cleanup(connection, done);
-      });
+      })
+        .catch((err) => {
+          cleanup(connection, done, err);
+        });
     });
 
-    it("should generate an error when stopping a non existing Queue consumer", (done) => {
+    it("should not generate an error when stopping a non existing Queue consumer", (done) => {
       // initialize
       var connection = getAmqpConnection();
 
@@ -927,13 +932,15 @@ describe("Test amqp-ts module", function () {
 
       queue.activateConsumer((message) => {
         cleanup(connection, done, new Error("Received unexpected message"));
-      }, {noAck: true});
+      }, { noAck: true });
       queue.stopConsumer().then(() => {
         return queue.stopConsumer();
-      }).catch((err) => {
-        expect(err.message).equals("amqp-ts Queue.cancelConsumer error: no consumer defined");
+      }).then(() => {
         cleanup(connection, done);
-      });
+      })
+        .catch((err) => {
+          cleanup(connection, done, err);
+        });
     });
 
     it("should send a message to a queue before the queue is explicitely initialized", (done) => {
@@ -953,7 +960,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
     });
 
     it("should accept optional parameters", (done) => {
@@ -962,9 +969,9 @@ describe("Test amqp-ts module", function () {
       var messagesReceived = 0;
 
       // test code
-      var exchange1 = connection.declareExchange(nextExchangeName(), "topic", {durable: true});
-      var exchange2 = connection.declareExchange(nextExchangeName(), "topic", {durable: true});
-      var queue = connection.declareQueue(nextQueueName(), {durable: true});
+      var exchange1 = connection.declareExchange(nextExchangeName(), "topic", { durable: true });
+      var exchange2 = connection.declareExchange(nextExchangeName(), "topic", { durable: true });
+      var queue = connection.declareQueue(nextQueueName(), { durable: true });
       queue.bind(exchange1, "*.*", {});
       exchange1.bind(exchange2, "*.test", {});
 
@@ -986,7 +993,7 @@ describe("Test amqp-ts module", function () {
         } catch (err) {
           cleanup(connection, done, err);
         }
-      }, {noAck: true});
+      }, { noAck: true });
     });
 
     it("should close an exchange and a queue", function (done) {
@@ -1022,7 +1029,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should delete an exchange and a queue", function(done) {
+    it("should delete an exchange and a queue", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1048,7 +1055,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should process a queue rpc", function(done) {
+    it("should process a queue rpc", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1060,7 +1067,7 @@ describe("Test amqp-ts module", function () {
       });
 
       connection.completeConfiguration().then(function () {
-        queue.rpc({reply: "TestRpc"}).then((result) => {
+        queue.rpc({ reply: "TestRpc" }).then((result) => {
           try {
             expect(result.getContent()).equals("TestRpc");
             cleanup(connection, done);
@@ -1071,7 +1078,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should process an unresolved queue rpc, consumer returning Message", function(done) {
+    it("should process an unresolved queue rpc, consumer returning Message", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1082,7 +1089,7 @@ describe("Test amqp-ts module", function () {
         return new Amqp.Message(message.getContent().reply);
       });
 
-      queue.rpc({reply: "TestRpc"}).then((result) => {
+      queue.rpc({ reply: "TestRpc" }).then((result) => {
         try {
           expect(result.getContent()).equals("TestRpc");
           cleanup(connection, done);
@@ -1092,7 +1099,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should process an exchange rpc", function(done) {
+    it("should process an exchange rpc", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1104,7 +1111,7 @@ describe("Test amqp-ts module", function () {
       });
 
       connection.completeConfiguration().then(function () {
-        exchange.rpc({reply: "TestRpc"}).then((result) => {
+        exchange.rpc({ reply: "TestRpc" }).then((result) => {
           try {
             expect(result.getContent()).equals("TestRpc");
             cleanup(connection, done);
@@ -1115,7 +1122,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should create a topology and send and receive a Message", function(done) {
+    it("should create a topology and send and receive a Message", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1125,15 +1132,15 @@ describe("Test amqp-ts module", function () {
       var queueName1 = nextQueueName();
       var topology: Amqp.Connection.Topology = {
         exchanges: [
-          {name: exchangeName1},
-          {name: exchangeName2}
+          { name: exchangeName1 },
+          { name: exchangeName2 }
         ],
         queues: [
-          {name: queueName1}
+          { name: queueName1 }
         ],
         bindings: [
-          {source: exchangeName1, exchange: exchangeName2},
-          {source: exchangeName2, queue: queueName1}
+          { source: exchangeName1, exchange: exchangeName2 },
+          { source: exchangeName2, queue: queueName1 }
         ]
       };
 
@@ -1142,7 +1149,7 @@ describe("Test amqp-ts module", function () {
         queue.activateConsumer((message) => {
           expect(message.getContent()).equals("Test");
           cleanup(connection, done);
-        }, {noAck: true});
+        }, { noAck: true });
 
         var exchange = connection.declareExchange(exchangeName1);
         var msg = new Amqp.Message("Test");
@@ -1152,7 +1159,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should close a queue multiple times without generating errors", function(done) {
+    it("should close a queue multiple times without generating errors", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1170,7 +1177,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should delete a queue multiple times without generating errors", function(done) {
+    it("should delete a queue multiple times without generating errors", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1188,7 +1195,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should close an exchange multiple times without generating errors", function(done) {
+    it("should close an exchange multiple times without generating errors", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1206,7 +1213,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should delete an exchange multiple times without generating errors", function(done) {
+    it("should delete an exchange multiple times without generating errors", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1224,7 +1231,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should set a prefetch count to a queue", function(done) {
+    it("should set a prefetch count to a queue", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
@@ -1241,7 +1248,7 @@ describe("Test amqp-ts module", function () {
       });
     });
 
-    it("should recover to a queue", function(done) {
+    it("should recover to a queue", function (done) {
       // initialize
       var connection = getAmqpConnection();
 
