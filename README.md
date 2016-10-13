@@ -109,6 +109,10 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 1.2.0
+ - added `name` property for `Exchange` and `Queue` and `type` property for `Exchange`
+ - improved consumer cleanup for `Exchange` and `Queue` methods `close` and `delete`
+
 ### version 1.1.1
  - added the `prefetch` option to `DeclarationOptions` in the `amqp-ts.d.ts` file
 
