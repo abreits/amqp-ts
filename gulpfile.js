@@ -30,8 +30,8 @@ var tsProject = ts.createProject({
 
 gulp.task('default', ['build:clean']);
 
-gulp.task('build', ['compile', 'copy-to-lib', 'test']);
-gulp.task('build:clean', ['clean', 'compile', 'test']);
+gulp.task('build', ['compile', 'copy-to-lib', 'test:dot']);
+gulp.task('build:clean', ['clean', 'compile', 'test:dot']);
 
 gulp.task('watch', ['clean', 'build'], function () {
   gulp.watch('server/**/*.ts', ['build']);
@@ -95,6 +95,18 @@ gulp.task('copy-to-lib', ['compile'], function () {
 
 // unit tests, more a fast integration test because at the moment it uses an external AMQP server
 gulp.task('test', ['copy-to-lib'], function () {
+  return gulp.src('transpiled/**/*.spec.js', {
+    read: false
+  })
+    .pipe(mocha({
+      r: 'tools/mocha/setup.js',
+      reporter: 'spec' // 'spec', 'dot'
+    }))
+    .on('error', swallowError);
+});
+
+// unit tests, more a fast integration test because at the moment it uses an external AMQP server
+gulp.task('test:dot', ['copy-to-lib'], function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
   })
