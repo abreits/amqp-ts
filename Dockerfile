@@ -30,12 +30,7 @@
 # todo: create better integration
 FROM node:latest
 
-
 WORKDIR /src
-
-VOLUME ["/src"]
-# needed to keep the docker version of the libraries separate from the local version
-VOLUME ["/src/node_modules"]
 
 # install global modules needed
 RUN npm install -g gulp
@@ -44,6 +39,8 @@ RUN npm install -g gulp
 COPY package.json /src/
 RUN npm install
 
+# needed to keep the docker version of the libraries separate from the local version
+VOLUME ["/src", "/src/node_modules"]
 # default node debug port
 EXPOSE 5858
 
@@ -51,4 +48,5 @@ EXPOSE 5858
 ENV AMQPTEST_CONNECTION_URL=amqp://rabbitmq
 
 #initialize the docker development environment
-CMD ["npm", "run", "docker-develop"]
+#CMD ["npm", "run", "docker-develop"]
+CMD ["node", "tools/alive"]

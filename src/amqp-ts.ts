@@ -940,7 +940,7 @@ export class Queue {
       this._consumerInitialized.then(() => {
         this._channel.cancel(this._consumerTag, (err, ok) => {
           /* istanbul ignore if */
-          if (err && err.message !== "Channel ended, no reply will be forthcoming") {
+          if (err) {
             reject(err);
           } else {
             delete this._consumerInitialized;
@@ -960,32 +960,30 @@ export class Queue {
         this.initialized.then(() => {
           return Binding.removeBindingsContaining(this);
         }).then(() => {
-          this.stopConsumer().catch((err) => {
-            throw err;
-          });
+          return this.stopConsumer();
         }).then(() => {
-            this._channel.deleteQueue(this._name, {}, (err, ok) => {
-              /* istanbul ignore if */
-              if (err) {
-                reject(err);
-              } else {
-                delete this.initialized; // invalidate queue
-                delete this._connection._queues[this._name]; // remove the queue from our administration
-                this._channel.close((err) => {
-                  /* istanbul ignore if */
-                  if (err) {
-                    reject(err);
-                  } else {
-                    delete this._channel;
-                    delete this._connection;
-                    resolve(<Queue.DeleteResult>ok);
-                  }
-                });
-              }
-            });
-          }).catch((err) => {
-            reject(err);
+          return this._channel.deleteQueue(this._name, {}, (err, ok) => {
+            /* istanbul ignore if */
+            if (err) {
+              reject(err);
+            } else {
+              delete this.initialized; // invalidate queue
+              delete this._connection._queues[this._name]; // remove the queue from our administration
+              this._channel.close((err) => {
+                /* istanbul ignore if */
+                if (err) {
+                  reject(err);
+                } else {
+                  delete this._channel;
+                  delete this._connection;
+                  resolve(<Queue.DeleteResult>ok);
+                }
+              });
+            }
           });
+        }).catch((err) => {
+          reject(err);
+        });
       });
     }
     return this._deleting;
@@ -997,7 +995,7 @@ export class Queue {
         this.initialized.then(() => {
           return Binding.removeBindingsContaining(this);
         }).then(() => {
-          this.stopConsumer();
+          return this.stopConsumer();
         }).then(() => {
           delete this.initialized; // invalidate queue
           delete this._connection._queues[this._name]; // remove the queue from our administration

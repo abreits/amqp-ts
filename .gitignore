@@ -24,4 +24,5 @@ node_modules
 
 # Dev Environments
 .idea
-.vscode
+# Do not exclude project settings of default develop environment
+# .vscode

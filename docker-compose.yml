@@ -6,7 +6,7 @@ services:
     ports:
      - "5858:5858"
     volumes:
-     - ".:/src"
+     - ".:/src/"
     depends_on:
      - "rabbitmq"
     links:
