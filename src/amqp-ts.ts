@@ -154,7 +154,6 @@ export class Connection {
     for (var queueId in this._queues) {
       var queue = this._queues[queueId];
       var consumer = queue._consumer;
-      var consumerOptions = queue._consumerOptions;
       amqpts_log.log("debug", "Re-initialize queue '" + queue._name + "'.", { module: "amqp-ts" });
       queue._initialize();
       if (consumer) {
