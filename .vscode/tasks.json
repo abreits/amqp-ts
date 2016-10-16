@@ -4,6 +4,18 @@
      "version": "0.1.0",
      "command": "docker",
      "isShellCommand": true,
-     "args": ["exec", "dev-amqp-ts", "gulp"],
-     "showOutput": "always"
+     "args": ["exec"],
+     "suppressTaskName": true,
+     "showOutput": "always",
+     "tasks": [
+         {
+             "taskName": "docker build",
+             "isBuildCommand": true,
+             "args": ["dev-amqp-ts", "gulp"]
+         },
+         {
+             "taskName" : "docker coverage",
+             "args": ["dev-amqp-ts", "gulp", "test:coverage"]
+         }
+     ]
 }
