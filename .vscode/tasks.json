@@ -32,6 +32,19 @@
                 "gulp",
                 "test:coverage"
             ]
+        },
+        {
+            "taskName": "debug",
+            "suppressTaskName": true,
+            "isBuildCommand": false,
+            "isWatching": false,
+            "args": [
+                "node",
+                "--debug-brk",
+                "--nolazy",
+                "/src/node_modules/mocha/bin/_mocha",
+                "transpiled/amqp-ts.spec.js"
+            ]
         }
     ]
 }
