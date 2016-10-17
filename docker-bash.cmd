@@ -1,0 +1,1 @@
+docker exec -it dev-amqp-ts bash
