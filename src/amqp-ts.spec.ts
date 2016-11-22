@@ -1099,6 +1099,33 @@ describe("Test amqp-ts module", function () {
       });
     });
 
+    it("should process a queue rpc, consumer returning Promise", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queue = connection.declareQueue(nextQueueName());
+
+      queue.activateConsumer((message) => {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve(message.getContent().reply);
+          }, 10);
+        });
+      });
+
+      connection.completeConfiguration().then(function () {
+        queue.rpc({ reply: "TestRpc" }).then((result) => {
+          try {
+            expect(result.getContent()).equals("TestRpc");
+            cleanup(connection, done);
+          } catch (err) {
+            cleanup(connection, done, err);
+          }
+        });
+      });
+    });
+
     it("should process an exchange rpc", function (done) {
       // initialize
       var connection = getAmqpConnection();

@@ -881,8 +881,17 @@ export class Queue {
         // check if there is a reply-to
         if (msg.properties.replyTo) {
           var options: any = {};
-          result = Queue._packMessageContent(result, options);
-          this._channel.sendToQueue(msg.properties.replyTo, result, options);
+          if (result instanceof Promise) {
+            result.then((resultValue) => {
+              resultValue = Queue._packMessageContent(result, options);
+              this._channel.sendToQueue(msg.properties.replyTo, resultValue, options);
+            }).catch((err) => {
+              log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
+            });
+          } else {
+            result = Queue._packMessageContent(result, options);
+            this._channel.sendToQueue(msg.properties.replyTo, result, options);
+          }
         }
 
         if (this._consumerOptions.noAck !== true) {
@@ -912,10 +921,21 @@ export class Queue {
         var result = this._consumer(message);
         // check if there is a reply-to
         if (msg.properties.replyTo) {
-          if (!(result instanceof Message)) {
-            result = new Message(result, {});
+          if (result instanceof Promise) {
+            result.then((resultValue) => {
+              if (!(resultValue instanceof Message)) {
+                resultValue = new Message(resultValue, {});
+              }
+              this._channel.sendToQueue(msg.properties.replyTo, resultValue.content, resultValue.properties);
+            }).catch((err) => {
+              log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
+            });
+          } else {
+            if (!(result instanceof Message)) {
+              result = new Message(result, {});
+            }
+            this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
           }
-          this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
         }
       } catch (err) {
         /* istanbul ignore next */
