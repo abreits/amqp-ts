@@ -109,6 +109,10 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 1.4.0
+ - now you can return a `Promise` with `queue.activateConsumer` for RPC's.
+   The result of the resolved `Promise` will be returned to the RPC caller.
+
 ### version 1.3.0
  - added `noCreate` creation option property for `Exchange` and `Queue` (expects the exchange or queue to already exist
    in AMQP)
