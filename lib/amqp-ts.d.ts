@@ -67,6 +67,7 @@ export declare namespace Exchange {
         autoDelete?: boolean;
         alternateExchange?: string;
         arguments?: any;
+        noCreate?: boolean;
     }
     export interface InitializeResult {
         exchange: string;
@@ -109,6 +110,7 @@ export declare namespace Queue {
         deadLetterExchange?: string;
         maxLength?: number;
         prefetch?: number;
+        noCreate?: boolean;
     }
     interface StartConsumerOptions {
         rawMessage?: boolean;

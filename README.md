@@ -32,7 +32,7 @@ It is the preferred way to deal with sending and receiving messages.
 
 ### Current status
 
-This is a work in progress, currently in a late beta state.
+The library is considered production ready.
 
 It does depend on the following npm libraries:
 - [amqplib](http://www.squaremobius.net/amqp.node/)
@@ -109,6 +109,11 @@ When the library detects that the connection with the AMQP server is lost, it tr
 
 What's new    <a name="whatsnew"></a>
 ----------
+### version 1.3.0
+ - added `noCreate` creation option property for `Exchange` and `Queue` (expects the exchange or queue to already exist
+   in AMQP)
+ - improved unit tests
+
 ### version 1.2.0
  - added `name` property for `Exchange` and `Queue` and `type` property for `Exchange`
  - improved consumer cleanup for `Exchange` and `Queue` methods `close` and `delete`

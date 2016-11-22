@@ -18,14 +18,14 @@ var ApplicationName = process.env.AMQPTS_APPLICATIONNAME ||
   (path.parse ? path.parse(process.argv[1]).name : path.basename(process.argv[1]));
 
 // create a custom winston logger for amqp-ts
-var amqpts_log = new winston.Logger({
+var amqp_log = new winston.Logger({
   transports: [
     new winston.transports.Console({
       level: process.env.AMQPTS_LOGLEVEL || "error"
     })
   ]
 });
-export var log = amqpts_log;
+export var log = amqp_log;
 
 // name for the RabbitMQ direct reply-to queue
 const DIRECT_REPLY_TO_QUEUE = "amq.rabbitmq.reply-to";
@@ -64,7 +64,7 @@ export class Connection {
 
   private rebuildConnection(): Promise<void> {
     if (this._rebuilding) { // only one rebuild process can be active at any time
-      amqpts_log.log("debug", "Connection rebuild already in progress, joining active rebuild attempt.", { module: "amqp-ts" });
+      log.log("debug", "Connection rebuild already in progress, joining active rebuild attempt.", { module: "amqp-ts" });
       return this.initialized;
     }
     this._retry = -1;
@@ -80,9 +80,9 @@ export class Connection {
         } else {
           this._rebuilding = false;
           if (this.connectedBefore) {
-            amqpts_log.log("warn", "Connection re-established", { module: "amqp-ts" });
+            log.log("warn", "Connection re-established", { module: "amqp-ts" });
           } else {
-            amqpts_log.log("info", "Connection established.", { module: "amqp-ts" });
+            log.log("info", "Connection established.", { module: "amqp-ts" });
             this.connectedBefore = true;
           }
           resolve(null);
@@ -91,7 +91,7 @@ export class Connection {
     });
     /* istanbul ignore next */
     this.initialized.catch((err) => {
-      amqpts_log.log("warn", "Error creating connection!", { module: "amqp-ts" });
+      log.log("warn", "Error creating connection!", { module: "amqp-ts" });
       //throw (err);
     });
 
@@ -108,10 +108,10 @@ export class Connection {
           return;
         }
 
-        amqpts_log.log("warn", "Connection failed.", { module: "amqp-ts" });
+        log.log("warn", "Connection failed.", { module: "amqp-ts" });
         this._retry = retry;
         if (thisConnection.reconnectStrategy.retries === 0 || thisConnection.reconnectStrategy.retries > retry) {
-          amqpts_log.log("warn", "Connection retry " + (retry + 1) + " in " + thisConnection.reconnectStrategy.interval + "ms",
+          log.log("warn", "Connection retry " + (retry + 1) + " in " + thisConnection.reconnectStrategy.interval + "ms",
             { module: "amqp-ts" });
           setTimeout(thisConnection.tryToConnect,
             thisConnection.reconnectStrategy.interval,
@@ -120,12 +120,12 @@ export class Connection {
             callback
           );
         } else { //no reconnect strategy, or retries exhausted, so return the error
-          amqpts_log.log("warn", "Connection failed, exiting: No connection retries left (retry " + retry + ").", { module: "amqp-ts" });
+          log.log("warn", "Connection failed, exiting: No connection retries left (retry " + retry + ").", { module: "amqp-ts" });
           callback(err);
         }
       } else {
         var restart = (err: Error) => {
-          amqpts_log.log("debug", "Connection error occurred.", { module: "amqp-ts" });
+          log.log("debug", "Connection error occurred.", { module: "amqp-ts" });
           connection.removeListener("error", restart);
           //connection.removeListener("end", restart); // not sure this is needed
           thisConnection._rebuildAll(err); //try to rebuild the topology when the connection  unexpectedly closes
@@ -140,41 +140,41 @@ export class Connection {
   }
 
   _rebuildAll(err: Error): Promise<void> {
-    amqpts_log.log("warn", "Connection error: " + err.message, { module: "amqp-ts" });
+    log.log("warn", "Connection error: " + err.message, { module: "amqp-ts" });
 
-    amqpts_log.log("debug", "Rebuilding connection NOW.", { module: "amqp-ts" });
+    log.log("debug", "Rebuilding connection NOW.", { module: "amqp-ts" });
     this.rebuildConnection();
 
     //re initialize exchanges, queues and bindings if they exist
     for (var exchangeId in this._exchanges) {
       var exchange = this._exchanges[exchangeId];
-      amqpts_log.log("debug", "Re-initialize Exchange '" + exchange._name + "'.", { module: "amqp-ts" });
+      log.log("debug", "Re-initialize Exchange '" + exchange._name + "'.", { module: "amqp-ts" });
       exchange._initialize();
     }
     for (var queueId in this._queues) {
       var queue = this._queues[queueId];
       var consumer = queue._consumer;
-      amqpts_log.log("debug", "Re-initialize queue '" + queue._name + "'.", { module: "amqp-ts" });
+      log.log("debug", "Re-initialize queue '" + queue._name + "'.", { module: "amqp-ts" });
       queue._initialize();
       if (consumer) {
-        amqpts_log.log("debug", "Re-initialize consumer for queue '" + queue._name + "'.", { module: "amqp-ts" });
+        log.log("debug", "Re-initialize consumer for queue '" + queue._name + "'.", { module: "amqp-ts" });
         queue._initializeConsumer();
       }
     }
     for (var bindingId in this._bindings) {
       var binding = this._bindings[bindingId];
-      amqpts_log.log("debug", "Re-initialize binding from '" + binding._source._name + "' to '" +
+      log.log("debug", "Re-initialize binding from '" + binding._source._name + "' to '" +
         binding._destination._name + "'.", { module: "amqp-ts" });
       binding._initialize();
     }
 
     return new Promise<void>((resolve, reject) => {
       this.completeConfiguration().then(() => {
-        amqpts_log.log("debug", "Rebuild success.", { module: "amqp-ts" });
+        log.log("debug", "Rebuild success.", { module: "amqp-ts" });
         resolve(null);
       }, /* istanbul ignore next */
         (rejectReason) => {
-          amqpts_log.log("debug", "Rebuild failed.", { module: "amqp-ts" });
+          log.log("debug", "Rebuild failed.", { module: "amqp-ts" });
           reject(rejectReason);
         });
     });
@@ -349,12 +349,12 @@ export class Message {
       try {
         destination._channel.publish(exchange, routingKey, this.content, this.properties);
       } catch (err) {
-        amqpts_log.log("debug", "Publish error: " + err.message, { module: "amqp-ts" });
+        log.log("debug", "Publish error: " + err.message, { module: "amqp-ts" });
         var destinationName = destination._name;
         var connection = destination._connection;
-        amqpts_log.log("debug", "Try to rebuild connection, before Call.", { module: "amqp-ts" });
+        log.log("debug", "Try to rebuild connection, before Call.", { module: "amqp-ts" });
         connection._rebuildAll(err).then(() => {
-          amqpts_log.log("debug", "Retransmitting message.", { module: "amqp-ts" });
+          log.log("debug", "Retransmitting message.", { module: "amqp-ts" });
           if (destination instanceof Queue) {
             connection._queues[destinationName].publish(this.content, this.properties);
           } else {
@@ -411,7 +411,7 @@ export class Exchange {
   _channel: AmqpLib.Channel;
   _name: string;
   _type: string;
-  _options: AmqpLib.Options.AssertExchange;
+  _options: Exchange.DeclarationOptions;
 
   _deleting: Promise<void>;
   _closing: Promise<void>;
@@ -424,7 +424,7 @@ export class Exchange {
     return this._type;
   }
 
-  constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions) {
+  constructor(connection: Connection, name: string, type?: string, options: Exchange.DeclarationOptions = {}) {
     this._connection = connection;
     this._name = name;
     this._type = type;
@@ -441,16 +441,21 @@ export class Exchange {
             reject(err);
           } else {
             this._channel = channel;
-            this._channel.assertExchange(this._name, this._type, <AmqpLib.Options.AssertExchange>this._options, (err, ok) => {
+            let callback = (err, ok) => {
               /* istanbul ignore if */
               if (err) {
-                amqpts_log.log("error", "Failed to create exchange '" + this._name + "'.", { module: "amqp-ts" });
+                log.log("error", "Failed to create exchange '" + this._name + "'.", { module: "amqp-ts" });
                 delete this._connection._exchanges[this._name];
                 reject(err);
               } else {
                 resolve(<Exchange.InitializeResult>ok);
               }
-            });
+            };
+            if (this._options.noCreate) {
+              this._channel.checkExchange(this._name, callback);
+            } else {
+              this._channel.assertExchange(this._name, this._type, <AmqpLib.Options.AssertExchange>this._options, callback);
+            }
           }
         });
       });
@@ -472,11 +477,11 @@ export class Exchange {
       try {
         this._channel.publish(this._name, routingKey, content, options);
       } catch (err) {
-        amqpts_log.log("warn", "Exchange publish error: " + err.message, { module: "amqp-ts" });
+        log.log("warn", "Exchange publish error: " + err.message, { module: "amqp-ts" });
         var exchangeName = this._name;
         var connection = this._connection;
         connection._rebuildAll(err).then(() => {
-          amqpts_log.log("debug", "Retransmitting message.", { module: "amqp-ts" });
+          log.log("debug", "Retransmitting message.", { module: "amqp-ts" });
           connection._exchanges[exchangeName].publish(content, routingKey, options);
         });
       }
@@ -648,6 +653,7 @@ export namespace Exchange {
     autoDelete?: boolean;
     alternateExchange?: string;
     arguments?: any;
+    noCreate?: boolean;
   }
   export interface InitializeResult {
     exchange: string;
@@ -680,10 +686,10 @@ export class Queue {
     return this._name;
   }
 
-  constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions) {
+  constructor(connection: Connection, name: string, options: Queue.DeclarationOptions = {}) {
     this._connection = connection;
     this._name = name;
-    this._options = options || {};
+    this._options = options;
     this._connection._queues[this._name] = this;
     this._initialize();
   }
@@ -697,10 +703,10 @@ export class Queue {
             reject(err);
           } else {
             this._channel = channel;
-            this._channel.assertQueue(this._name, <AmqpLib.Options.AssertQueue>this._options, (err, ok) => {
+            let callback = (err, ok) => {
               /* istanbul ignore if */
               if (err) {
-                amqpts_log.log("error", "Failed to create queue '" + this._name + "'.", { module: "amqp-ts" });
+                log.log("error", "Failed to create queue '" + this._name + "'.", { module: "amqp-ts" });
                 delete this._connection._queues[this._name];
                 reject(err);
               } else {
@@ -709,7 +715,13 @@ export class Queue {
                 }
                 resolve(<Queue.InitializeResult>ok);
               }
-            });
+            };
+
+            if (this._options.noCreate) {
+              this._channel.checkQueue(this._name, callback);
+            } else {
+              this._channel.assertQueue(this._name, <AmqpLib.Options.AssertQueue>this._options, callback);
+            }
           }
         });
       });
@@ -743,12 +755,12 @@ export class Queue {
       try {
         this._channel.sendToQueue(this._name, content, options);
       } catch (err) {
-        amqpts_log.log("debug", "Queue publish error: " + err.message, { module: "amqp-ts" });
+        log.log("debug", "Queue publish error: " + err.message, { module: "amqp-ts" });
         var queueName = this._name;
         var connection = this._connection;
-        amqpts_log.log("debug", "Try to rebuild connection, before Call.", { module: "amqp-ts" });
+        log.log("debug", "Try to rebuild connection, before Call.", { module: "amqp-ts" });
         connection._rebuildAll(err).then(() => {
-          amqpts_log.log("debug", "Retransmitting message.", { module: "amqp-ts" });
+          log.log("debug", "Retransmitting message.", { module: "amqp-ts" });
           connection._queues[queueName].publish(content, options);
         });
       }
@@ -878,7 +890,7 @@ export class Queue {
         }
       } catch (err) {
         /* istanbul ignore next */
-        amqpts_log.log("error", "Queue.onMessage consumer function returned error: " + err.message, { module: "amqp-ts" });
+        log.log("error", "Queue.onMessage consumer function returned error: " + err.message, { module: "amqp-ts" });
       }
     };
 
@@ -887,7 +899,7 @@ export class Queue {
         this._consumer(msg, this._channel);
       } catch (err) {
         /* istanbul ignore next */
-        amqpts_log.log("error", "Queue.onMessage consumer function returned error: " + err.message, { module: "amqp-ts" });
+        log.log("error", "Queue.onMessage consumer function returned error: " + err.message, { module: "amqp-ts" });
       }
     };
 
@@ -907,7 +919,7 @@ export class Queue {
         }
       } catch (err) {
         /* istanbul ignore next */
-        amqpts_log.log("error", "Queue.onMessage consumer function returned error: " + err.message, { module: "amqp-ts" });
+        log.log("error", "Queue.onMessage consumer function returned error: " + err.message, { module: "amqp-ts" });
       }
     };
 
@@ -1037,6 +1049,7 @@ export namespace Queue {
     deadLetterExchange?: string;
     maxLength?: number;
     prefetch?: number;
+    noCreate?: boolean;
   }
   export interface StartConsumerOptions {
     rawMessage?: boolean;
@@ -1097,7 +1110,7 @@ export class Binding {
           queue._channel.bindQueue(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
             /* istanbul ignore if */
             if (err) {
-              amqpts_log.log("error",
+              log.log("error",
                 "Failed to create queue binding (" +
                 this._source._name + "->" + this._destination._name + ")",
                 { module: "amqp-ts" });
@@ -1114,7 +1127,7 @@ export class Binding {
           exchange._channel.bindExchange(this._destination._name, this._source._name, this._pattern, this._args, (err, ok) => {
             /* istanbul ignore if */
             if (err) {
-              amqpts_log.log("error",
+              log.log("error",
                 "Failed to create exchange binding (" +
                 this._source._name + "->" + this._destination._name + ")",
                 { module: "amqp-ts" });

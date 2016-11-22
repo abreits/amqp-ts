@@ -6,7 +6,7 @@ import * as Promise from "bluebird";
 import * as Chai from "chai";
 var expect = Chai.expect;
 
-import * as AmqpLib from "amqplib/callback_api";
+import * as AmqpLib from "amqplib";
 import * as Amqp from "../lib/amqp-ts";
 
 /**
@@ -14,8 +14,8 @@ import * as Amqp from "../lib/amqp-ts";
  */
 // define test defaults
 var ConnectionUrl = process.env.AMQPTEST_CONNECTION_URL || "amqp://localhost";
-var UnitTestTimeout = process.env.AMQPTEST_TIMEOUT || 1000;
-var LogLevel = process.env.AMQPTEST_LOGLEVEL || "error";
+var UnitTestTimeout = process.env.AMQPTEST_TIMEOUT || 1500;
+var LogLevel = process.env.AMQPTEST_LOGLEVEL || "critical";
 var testExchangeNamePrefix = process.env.AMQPTEST_EXCHANGE_PREFIX || "TestExchange_";
 var testQueueNamePrefix = process.env.AMQPTEST_QUEUE_PREFIX || "TestQueue_";
 
@@ -1170,7 +1170,11 @@ describe("Test amqp-ts module", function () {
       connection.completeConfiguration().then(function () {
         queue.close();
         queue.close().then(() => {
-          cleanup(connection, done);
+          // redeclare queue for correct cleanup
+          queue = connection.declareQueue(queueName);
+          queue.initialized.then(() => {
+            cleanup(connection, done);
+          });
         });
       }, (err) => { // failed to configure the defined topology
         done(err);
@@ -1206,7 +1210,11 @@ describe("Test amqp-ts module", function () {
       connection.completeConfiguration().then(function () {
         exchange.close();
         exchange.close().then(() => {
-          cleanup(connection, done);
+          // redeclare exchange for correct cleanup
+          exchange = connection.declareExchange(exchangeName);
+          exchange.initialized.then(() => {
+            cleanup(connection, done);
+          });
         });
       }, (err) => { // failed to configure the defined topology
         done(err);
@@ -1242,7 +1250,7 @@ describe("Test amqp-ts module", function () {
       connection.completeConfiguration().then(function () {
         // todo: create a ral test that checks if the function works
         queue.prefetch(3);
-        done();
+        cleanup(connection, done);
       }, (err) => { // failed to configure the defined topology
         done(err);
       });
@@ -1264,6 +1272,90 @@ describe("Test amqp-ts module", function () {
       }, (err) => { // failed to configure the defined topology
         done(err);
       });
+    });
+
+    it("should not connect to a nonexisiting queue with 'noCreate: true'", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queueName = nextQueueName();
+      connection.declareQueue(queueName, { noCreate: true });
+
+      connection.completeConfiguration()
+        .then(() => {
+          cleanup(connection, done, new Error("Unexpected existing queue"));
+        })
+        .catch((err) => {
+          expect(err.message).to.contain("NOT-FOUND");
+          cleanup(connection, done);
+        });
+    });
+
+    it("should connect to an exisiting queue with 'noCreate: true'", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var queueName = nextQueueName();
+      connection.declareQueue(queueName);
+
+      connection.completeConfiguration()
+        .then(() => {
+          var queue = connection.declareQueue(queueName, { noCreate: true });
+          queue.initialized
+            .then(() => {
+              cleanup(connection, done);
+            })
+            .catch((err) => {
+              cleanup(connection, done, err);
+            });
+        });
+    });
+
+    it("should not connect to a nonexisiting exchange with 'noCreate: true'", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      // test code
+      var exchangeName = nextExchangeName();
+      connection.declareExchange(exchangeName, "", { noCreate: true });
+
+      connection.completeConfiguration()
+        .then(() => {
+          cleanup(connection, done, new Error("Unexpected existing exchange: " + exchangeName));
+        })
+        .catch((err) => {
+          expect(err.message).to.contain("NOT-FOUND");
+          cleanup(connection, done);
+        });
+    });
+
+    it("should connect to an exisiting exchange with 'noCreate: true'", function (done) {
+      // initialize
+      var connection = getAmqpConnection();
+
+      var exchangeName = nextExchangeName();
+      AmqpLib.connect(ConnectionUrl)
+        .then((conn) => {
+          return conn.createChannel();
+        })
+        .then((ch) => {
+          return ch.assertExchange(exchangeName, "fanout");
+        })
+        .then(() => {
+          var exchange = connection.declareExchange(exchangeName, "", { noCreate: true });
+          exchange.initialized
+            .then(() => {
+              cleanup(connection, done);
+            })
+            .catch((err) => {
+              cleanup(connection, done, err);
+            });
+        })
+        .catch((err) => {
+          done(err);
+        });
     });
   });
 });
