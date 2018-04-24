@@ -21,7 +21,7 @@
     "test-integration": "gulp test:integration"
   },
   "dependencies": {
-    "amqplib": "^0.4.1",
+    "amqplib": "^0.5.2",
     "bluebird": "^3.3.5",
     "winston": "^2.2.0"
   },
