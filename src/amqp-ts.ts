@@ -480,6 +480,28 @@ export class Exchange {
     this._connection._exchanges[this._name] = this;
   }
 
+  waitForConfirms() {
+    const channel = this._channel;
+
+    var waitForChannelConfirms = () => {
+      return new Promise(function (resolve, reject) {
+        channel.waitForConfirms((err) => {
+          if (!err) {
+            resolve(null);
+          } else {
+            reject(err);
+          }
+        });
+      });
+    };
+
+    if (this.initialized.isFulfilled()) {
+      return waitForChannelConfirms();
+    } else {
+      return this.initialized.then(waitForChannelConfirms);
+    }
+  }
+
   /**
    * deprecated, use 'exchange.send(message: Message)' instead
    */
