@@ -39,7 +39,12 @@ function restartAmqpServer() {
       throw (new Error("Unable to restart rabbitmq, error:\n" + err.message));
     }
   } else {
-    throw (new Error("AmqpServer shutdown and restart not implemented for this platform"));
+    try {
+      cp.execSync("./tools/restart-rabbit.sh");
+    } catch (err) {
+      winston.log("error", "Unable to shutdown and restart RabbitMQ");
+      throw (new Error("Unable to restart rabbitmq, error:\n" + err.message));
+    }
   }
 }
 
