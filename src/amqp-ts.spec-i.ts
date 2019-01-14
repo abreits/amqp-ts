@@ -108,11 +108,40 @@ describe("AMQP Connection class automatic reconnection", function() {
       restartAmqpServer();
       setTimeout(() => {
         var msg = new Amqp.Message("Test");
-        queue.send(msg);
+        exchange1.send(msg);
       }, 1000);
     }).catch((err) => {
       console.log("Consumer intialization FAILED!!!");
       done(err);
+    });
+  });
+
+  it("should reconnect and retrieve messages waiting on the queue", (done) => {
+    // initialize
+    var connection = new Amqp.Connection(ConnectionUrl);
+
+    // test code
+    var queue = connection.declareQueue("TestQueue");
+
+    var msg = new Amqp.Message("Test", {
+      persistent: true
+    });
+    msg.sendTo(queue).then(() => {
+      restartAmqpServer();
+
+      setTimeout(() => {
+        queue.activateConsumer((message) => {
+          try {
+            expect(message.getContent()).equals("Test");
+            cleanup(connection, done);
+          } catch (err) {
+            cleanup(connection, done, err);
+          }
+        }, {noAck: true}).catch((err) => {
+          console.log("Consumer intialization FAILED!!!");
+          done(err);
+        });
+      }, 1000);
     });
   });
 });
