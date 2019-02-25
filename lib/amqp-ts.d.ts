@@ -3,6 +3,7 @@
 import * as Promise from "bluebird";
 
 export declare class Connection {
+	isConnected: boolean;	
     initialized: Promise<void>;
     constructor(url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy);
 
