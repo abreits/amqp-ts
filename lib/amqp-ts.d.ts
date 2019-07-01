@@ -108,7 +108,7 @@ export declare class Exchange {
      */
     publish(content: any, routingKey?: string, options?: any): void;
     send(message: Message, routingKey?: string): void;
-    rpc(requestParameters: any, routingKey?: string, callback?: (message: Message) => void): Promise<Message>;
+    rpc(requestParameters: any, routingKey?: string, callback?: (err, message: Message) => void): Promise<Message>;
     delete(): Promise<void>;
     close(): Promise<void>;
     bind(source: Exchange, pattern?: string, args?: any): Promise<Binding>;

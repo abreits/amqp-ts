@@ -530,7 +530,7 @@ export class Exchange {
     message.sendTo(this, routingKey);
   }
 
-  rpc(requestParameters: any, routingKey = "",  callback?: (message: Message) => void): Promise<Message> {
+  rpc(requestParameters: any, routingKey = "",  callback?: (err, message: Message) => void): Promise<Message> {
     return new Promise<Message>((resolve, reject) => {
 
       function generateUuid(): string {
@@ -541,22 +541,17 @@ export class Exchange {
 
       var processRpc = () => {
         var uuid: string = generateUuid();
-        // var consumerTag: string;
         if (!this._isConsumerInitializedRcp) {
           this._isConsumerInitializedRcp = true;
           this._channel.consume(DIRECT_REPLY_TO_QUEUE, (resultMsg) => {
-            // this._channel.cancel(consumerTag);
-
-            // console.log(resultMsg);
 
             var result = new Message(resultMsg.content, resultMsg.fields);
             result.fields = resultMsg.fields;
 
             for (let handler of this._consumer_handlers) {
-              if(handler[0] === resultMsg.properties.correlationId){
+              if (handler[0] === resultMsg.properties.correlationId) {
                 let func: Function = handler[1];
-                func.apply("",[result]);
-                resolve(result);
+                  func.apply("", [undefined, result]);
               }
             }
 
@@ -948,8 +943,6 @@ export class Queue {
         var result = this._consumer(payload);
         // check if there is a reply-to
         if (msg.properties.replyTo) {
-          console.log(msg);
-          console.log(payload);
           var options: any = {};
           if (result instanceof Promise) {
             result.then((resultValue) => {
@@ -996,7 +989,7 @@ export class Queue {
               if (!(resultValue instanceof Message)) {
                 resultValue = new Message(resultValue, {});
               }
-              resultValue.properties.correlationId = msg.properties.correlationId
+              resultValue.properties.correlationId = msg.properties.correlationId;
               this._channel.sendToQueue(msg.properties.replyTo, resultValue.content, resultValue.properties);
             }).catch((err) => {
               log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
@@ -1005,7 +998,7 @@ export class Queue {
             if (!(result instanceof Message)) {
               result = new Message(result, {});
             }
-            result.properties.correlationId = msg.properties.correlationId
+            result.properties.correlationId = msg.properties.correlationId;
             this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
           }
         }
