@@ -101,6 +101,8 @@ connection.completeConfiguration().then(() => {
 
 More examples can be found in the [tutorials directory](https://github.com/abreits/amqp-ts/tree/master/tutorials).
 
+###  Connection Status
+To know the status of the connection: `connection.isConnected`. Returns true if the connection exists and false, otherwise.
 
 ### Automatic Reconnection    <a name="reconnect"></a>
 
