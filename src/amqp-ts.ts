@@ -134,7 +134,7 @@ export class Connection {
         };
         var onClose = () => {
           connection.removeListener("close", onClose);
-          if (!this._isClosing) {
+          if (!thisConnection._rebuilding && !thisConnection._isClosing) {
             restart(new Error("Connection closed by remote host"));
           }
         };
