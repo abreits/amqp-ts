@@ -165,8 +165,7 @@ export declare class Queue {
     /**
      * deprecated, use 'queue.activateConsumer(...)' instead
      */
-    startConsumer(onMessage: (msg: any, channel?: AmqpLib.Channel) => any, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsum
-                                                                                                                          esult>;
+    startConsumer(onMessage: (msg: any, channel?: AmqpLib.Channel) => any, options?: Queue.StartConsumerOptions): Promise<Queue.StartConsumerResult>;
     activateConsumer(onMessage: (msg: Message) => any, options?: Queue.ActivateConsumerOptions): Promise<Queue.StartConsumerResult>;
     _initializeConsumer(): void;
     stopConsumer(): Promise<void>;
