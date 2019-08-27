@@ -10,7 +10,7 @@ var addsrc = require('gulp-add-src');
 var ts = require('gulp-typescript');
 var tslint = require('gulp-tslint');
 var sourcemaps = require('gulp-sourcemaps');
-var mocha = require('gulp-spawn-mocha');
+var mocha = require('gulp-mocha');
 
 // swallow errors in watch
 function swallowError (error) {
@@ -28,23 +28,11 @@ var tsProject = ts.createProject({
   declaration: true
 });
 
-gulp.task('default', ['build:clean']);
-
-gulp.task('build', ['compile', 'copy-to-lib', 'test:dot']);
-gulp.task('build:clean', ['clean', 'compile', 'test:dot']);
-
-gulp.task('watch', ['clean', 'build'], function () {
-  gulp.watch('server/**/*.ts', ['build']);
+gulp.task('copy-to-lib', gulp.series(compile), function () {
+  return gulp.src('transpiled/amqp-ts.js')
+  .pipe(gulp.dest('lib'));
 });
 
-
-gulp.task('clean', function (cb) {
-  del.sync([
-    'coverage',
-    'transpiled'
-  ]);
-  cb();
-});
 
 gulp.task('clean:all', function () {
   del([
@@ -55,18 +43,28 @@ gulp.task('clean:all', function () {
 });
 
 
-gulp.task('compile', function () {
+function clean(cb) {
+  del.sync([
+    'coverage',
+    'transpiled'
+  ]);
+  cb();
+}
+
+
+function compile() {
   // compile typescript
   var tsResult = gulp.src('src/**/*.ts')
     .pipe(tslint({
+      formatter: 'prose',
       configuration: 'tools/tslint/tslint-node.json'
     }))
-    .pipe(tslint.report('prose', {
+    .pipe(tslint.report({
       emitError: false
     }))
 //    .pipe(addsrc.prepend('typings*/**/*.d.ts'))
     .pipe (sourcemaps.init())
-    .pipe (ts(tsProject));
+    .pipe (tsProject());
 
   return merge([
     tsResult.js
@@ -77,24 +75,21 @@ gulp.task('compile', function () {
       .pipe(gulp.dest('transpiled')),
     tsResult.dts.pipe(gulp.dest('transpiled'))
   ]);
-});
+}
 
 
 gulp.task('lint', function () {
   return gulp.src('src/**/*.ts')
     .pipe(tslint({
+      formatter: 'full',
       configuration: 'tools/tslint/tslint-node.json'
     }))
-    .pipe(tslint.report('full'));
+    .pipe(tslint.report());
 });
 
-gulp.task('copy-to-lib', ['compile'], function () {
-  return gulp.src('transpiled/amqp-ts.js')
-  .pipe(gulp.dest('lib'));
-});
 
 // unit tests, more a fast integration test because at the moment it uses an external AMQP server
-gulp.task('test', ['copy-to-lib'], function () {
+gulp.task('test', gulp.series('copy-to-lib'), function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
   })
@@ -106,7 +101,7 @@ gulp.task('test', ['copy-to-lib'], function () {
 });
 
 // unit tests, more a fast integration test because at the moment it uses an external AMQP server
-gulp.task('test:dot', ['copy-to-lib'], function () {
+gulp.task('test:dot', gulp.series('copy-to-lib'), function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
   })
@@ -118,7 +113,7 @@ gulp.task('test:dot', ['copy-to-lib'], function () {
 });
 
 // integration tests, at the moment more an extended version of the unit tests
-gulp.task('test:integration', ['copy-to-lib'], function () {
+gulp.task('test:integration', gulp.series('copy-to-lib'), function () {
   return gulp.src('transpiled/**/*.spec-i.js', {
     read: false
   })
@@ -128,7 +123,7 @@ gulp.task('test:integration', ['copy-to-lib'], function () {
     .on('error', swallowError);
 });
 
-gulp.task('test:coverage', ['copy-to-lib'], function () {
+gulp.task('test:coverage', gulp.series('copy-to-lib'), function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
   })
@@ -139,3 +134,11 @@ gulp.task('test:coverage', ['copy-to-lib'], function () {
 });
 
 
+// quick fix for gulp 4, migrating from gulp 3, fixing 'task never defined' errors
+gulp.task('build', gulp.series(compile, 'copy-to-lib', 'test:dot'));
+gulp.task('build:clean', gulp.series(clean, compile, 'test:dot'));
+gulp.task('default', gulp.series('build:clean'));
+
+gulp.task('watch', gulp.series(clean, 'build'), function () {
+  gulp.watch('server/**/*.ts', ['build']);
+});

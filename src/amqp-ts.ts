@@ -567,7 +567,7 @@ export class Exchange {
               message.sendTo(this, routingKey);
             }
           });
-        }else {
+        } else {
           this._consumer_handlers.push([uuid, callback]);
           var message = new Message(requestParameters, { correlationId: uuid, replyTo: DIRECT_REPLY_TO_QUEUE });
           message.sendTo(this, routingKey);
@@ -957,7 +957,8 @@ export class Queue {
           }
         }
 
-        if (this._consumerOptions.noAck !== true) {
+        // 'hack' added to allow better manual ack control by client (less elegant, but should work)
+        if (this._consumerOptions.manualAck !== true && this._consumerOptions.noAck !== true) {
           this._channel.ack(msg);
         }
       } catch (err) {
@@ -1141,6 +1142,7 @@ export namespace Queue {
     consumerTag?: string;
     noLocal?: boolean;
     noAck?: boolean;
+    manualAck?: boolean;
     exclusive?: boolean;
     priority?: number;
     arguments?: Object;
@@ -1149,6 +1151,7 @@ export namespace Queue {
     consumerTag?: string;
     noLocal?: boolean;
     noAck?: boolean;
+    manualAck?: boolean;
     exclusive?: boolean;
     priority?: number;
     arguments?: Object;
@@ -1255,7 +1258,7 @@ export class Binding {
             }
           });
         });
-      };
+      }
     });
   }
 

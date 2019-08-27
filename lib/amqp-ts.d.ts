@@ -192,6 +192,7 @@ export declare namespace Queue {
         consumerTag?: string;
         noLocal?: boolean;
         noAck?: boolean;
+        manualAck?: boolean;
         exclusive?: boolean;
         priority?: number;
         arguments?: Object;
@@ -200,6 +201,7 @@ export declare namespace Queue {
         consumerTag?: string;
         noLocal?: boolean;
         noAck?: boolean;
+        manualAck?: boolean;
         exclusive?: boolean;
         priority?: number;
         arguments?: Object;
