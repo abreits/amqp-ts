@@ -946,7 +946,7 @@ export class Queue {
           var options: any = {};
           if (result instanceof Promise) {
             result.then((resultValue) => {
-              resultValue = Queue._packMessageContent(result, options);
+              resultValue = Queue._packMessageContent(resultValue, options);
               this._channel.sendToQueue(msg.properties.replyTo, resultValue, options);
             }).catch((err) => {
               log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
