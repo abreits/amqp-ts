@@ -944,17 +944,13 @@ export class Queue {
         // check if there is a reply-to
         if (msg.properties.replyTo) {
           var options: any = {};
-          if (result instanceof Promise) {
-            result.then((resultValue) => {
-              resultValue = Queue._packMessageContent(result, options);
-              this._channel.sendToQueue(msg.properties.replyTo, resultValue, options);
-            }).catch((err) => {
-              log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
-            });
-          } else {
-            result = Queue._packMessageContent(result, options);
-            this._channel.sendToQueue(msg.properties.replyTo, result, options);
-          }
+          // convert the result to a promise if it isn't one already
+          Promise.resolve(result).then((resultValue) => {
+            resultValue = Queue._packMessageContent(resultValue, options);
+            this._channel.sendToQueue(msg.properties.replyTo, resultValue, options);
+          }).catch((err) => {
+            log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
+          });
         }
 
         // 'hack' added to allow better manual ack control by client (less elegant, but should work)
@@ -985,23 +981,16 @@ export class Queue {
         var result = this._consumer(message);
         // check if there is a reply-to
         if (msg.properties.replyTo) {
-          if (result instanceof Promise) {
-            result.then((resultValue) => {
-              if (!(resultValue instanceof Message)) {
-                resultValue = new Message(resultValue, {});
-              }
-              resultValue.properties.correlationId = msg.properties.correlationId;
-              this._channel.sendToQueue(msg.properties.replyTo, resultValue.content, resultValue.properties);
-            }).catch((err) => {
-              log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
-            });
-          } else {
-            if (!(result instanceof Message)) {
-              result = new Message(result, {});
+          // convert the result to a promise if it isn't one already
+          Promise.resolve(result).then((resultValue) => {
+            if (!(resultValue instanceof Message)) {
+              resultValue = new Message(resultValue, {});
             }
-            result.properties.correlationId = msg.properties.correlationId;
-            this._channel.sendToQueue(msg.properties.replyTo, result.content, result.properties);
-          }
+            resultValue.properties.correlationId = msg.properties.correlationId;
+            this._channel.sendToQueue(msg.properties.replyTo, resultValue.content, resultValue.properties);
+          }).catch((err) => {
+            log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
+          });
         }
       } catch (err) {
         /* istanbul ignore next */
