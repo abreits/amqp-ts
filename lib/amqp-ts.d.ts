@@ -5,6 +5,7 @@
  * methods and properties starting with '_' signify that the scope of the item should be limited to
  * the inside of the enclosing namespace.
  */
+/// <reference types="node" />
 import * as AmqpLib from "amqplib/callback_api";
 import * as Promise from "bluebird";
 import * as winston from "winston";
@@ -31,8 +32,8 @@ export declare class Connection extends EventEmitter {
         [id: string]: Binding;
     };
     constructor(url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy);
-    private rebuildConnection();
-    private tryToConnect(thisConnection, retry, callback);
+    private rebuildConnection;
+    private tryToConnect;
     _rebuildAll(err: Error): Promise<void>;
     close(): Promise<void>;
     /**
@@ -48,7 +49,7 @@ export declare class Connection extends EventEmitter {
     declareExchange(name: string, type?: string, options?: Exchange.DeclarationOptions): Exchange;
     declareQueue(name: string, options?: Queue.DeclarationOptions): Queue;
     declareTopology(topology: Connection.Topology): Promise<any>;
-    getConnection: AmqpLib.Connection;
+    readonly getConnection: AmqpLib.Connection;
 }
 export declare namespace Connection {
     interface ReconnectStrategy {
@@ -99,8 +100,8 @@ export declare class Exchange {
     _options: Exchange.DeclarationOptions;
     _deleting: Promise<void>;
     _closing: Promise<void>;
-    name: string;
-    type: string;
+    readonly name: string;
+    readonly type: string;
     constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions);
     _initialize(): void;
     /**
@@ -149,7 +150,7 @@ export declare class Queue {
     _consumerStopping: boolean;
     _deleting: Promise<Queue.DeleteResult>;
     _closing: Promise<void>;
-    name: string;
+    readonly name: string;
     constructor(connection: Connection, name: string, options?: Queue.DeclarationOptions);
     _initialize(): void;
     static _packMessageContent(content: any, options: any): Buffer;
