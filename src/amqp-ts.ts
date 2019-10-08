@@ -941,22 +941,21 @@ export class Queue {
         }
         var payload = Queue._unpackMessageContent(msg);
         var result = this._consumer(payload);
-        // check if there is a reply-to
-        if (msg.properties.replyTo) {
-          var options: any = {};
-          // convert the result to a promise if it isn't one already
-          Promise.resolve(result).then((resultValue) => {
+        // convert the result to a promise if it isn't one already
+        Promise.resolve(result).then((resultValue) => {
+          // check if there is a reply-to
+          if (msg.properties.replyTo) {
+            var options: any = {};
             resultValue = Queue._packMessageContent(resultValue, options);
             this._channel.sendToQueue(msg.properties.replyTo, resultValue, options);
-          }).catch((err) => {
-            log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
-          });
-        }
-
-        // 'hack' added to allow better manual ack control by client (less elegant, but should work)
-        if (this._consumerOptions.manualAck !== true && this._consumerOptions.noAck !== true) {
-          this._channel.ack(msg);
-        }
+          }
+          // 'hack' added to allow better manual ack control by client (less elegant, but should work)
+          if (this._consumerOptions.manualAck !== true && this._consumerOptions.noAck !== true) {
+            this._channel.ack(msg);
+          }
+        }).catch((err) => {
+          log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
+        });
       } catch (err) {
         /* istanbul ignore next */
         log.log("error", "Queue.onMessage consumer function returned error: " + err.message, { module: "amqp-ts" });
@@ -979,19 +978,19 @@ export class Queue {
         message._message = msg;
         message._channel = this._channel;
         var result = this._consumer(message);
-        // check if there is a reply-to
-        if (msg.properties.replyTo) {
-          // convert the result to a promise if it isn't one already
-          Promise.resolve(result).then((resultValue) => {
+        // convert the result to a promise if it isn't one already
+        Promise.resolve(result).then((resultValue) => {
+          // check if there is a reply-to
+          if (msg.properties.replyTo) {
             if (!(resultValue instanceof Message)) {
               resultValue = new Message(resultValue, {});
             }
             resultValue.properties.correlationId = msg.properties.correlationId;
             this._channel.sendToQueue(msg.properties.replyTo, resultValue.content, resultValue.properties);
-          }).catch((err) => {
-            log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
-          });
-        }
+          }
+        }).catch((err) => {
+          log.log("error", "Queue.onMessage RPC promise returned error: " + err.message, { module: "amqp-ts" });
+        });
       } catch (err) {
         /* istanbul ignore next */
         log.log("error", "Queue.onMessage consumer function returned error: " + err.message, { module: "amqp-ts" });
