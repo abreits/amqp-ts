@@ -105,7 +105,7 @@ export declare class Exchange {
     constructor(connection: Connection, name: string, type?: string, options?: Exchange.DeclarationOptions);
     _initialize(): void;
     /**
-     * deprecated, use 'exchange.send(message: Message)' instead
+     * deprecated, use 'exchange.send(message: Message, routingKey?: string)' instead
      */
     publish(content: any, routingKey?: string, options?: any): void;
     send(message: Message, routingKey?: string): void;
@@ -159,7 +159,7 @@ export declare class Queue {
      * deprecated, use 'queue.send(message: Message)' instead
      */
     publish(content: any, options?: any): void;
-    send(message: Message, routingKey?: string): void;
+    send(message: Message): void;
     rpc(requestParameters: any): Promise<Message>;
     prefetch(count: number): void;
     recover(): Promise<void>;

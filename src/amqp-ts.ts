@@ -502,7 +502,7 @@ export class Exchange {
   }
 
   /**
-   * deprecated, use 'exchange.send(message: Message)' instead
+   * deprecated, use 'exchange.send(message: Message, routingKey?: string)' instead
    */
   publish(content: any, routingKey = "", options: any = {}): void {
     if (typeof content === "string") {
@@ -838,8 +838,8 @@ export class Queue {
     }
   }
 
-  send(message: Message, routingKey = ""): void {
-    message.sendTo(this, routingKey);
+  send(message: Message): void {
+    message.sendTo(this);
   }
 
   rpc(requestParameters: any): Promise<Message> {
