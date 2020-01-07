@@ -943,8 +943,8 @@ export class Queue {
         var result = this._consumer(payload);
         // convert the result to a promise if it isn't one already
         Promise.resolve(result).then((resultValue) => {
-          // check if there is a reply-to
-          if (msg.properties.replyTo) {
+          // check if there is a reply-to and that the result from the consumer is not null or undefined
+          if (msg.properties.replyTo && resultValue != null) {
             var options: any = {};
             resultValue = Queue._packMessageContent(resultValue, options);
             this._channel.sendToQueue(msg.properties.replyTo, resultValue, options);
@@ -980,8 +980,8 @@ export class Queue {
         var result = this._consumer(message);
         // convert the result to a promise if it isn't one already
         Promise.resolve(result).then((resultValue) => {
-          // check if there is a reply-to
-          if (msg.properties.replyTo) {
+          // check if there is a reply-to and that the result from the consumer is not null or undefined
+          if (msg.properties.replyTo && resultValue != null) {
             if (!(resultValue instanceof Message)) {
               resultValue = new Message(resultValue, {});
             }
