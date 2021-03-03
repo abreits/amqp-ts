@@ -15,9 +15,6 @@ import * as path from "path";
 import * as os from "os";
 import { EventEmitter } from "events";
 
-var ApplicationName = process.env.AMQPTS_APPLICATIONNAME ||
-    (path.parse ? path.parse(process.argv[1]).name : path.basename(process.argv[1]));
-
 // create a custom winston logger for amqp-ts
 var amqp_log = new winston.Logger({
   transports: [
@@ -653,6 +650,7 @@ export class Exchange {
   }
 
   consumerQueueName(): string {
+    const ApplicationName = process.env.AMQPTS_APPLICATIONNAME || (process.argv.length >= 2 ? (path.parse ? path.parse(process.argv[1]).name : path.basename(process.argv[1])) : 'amqptsApp');
     return this._name + "." + ApplicationName + "." + os.hostname() + "." + process.pid;
   }
 
