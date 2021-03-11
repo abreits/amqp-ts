@@ -84,7 +84,7 @@ export declare class Message {
     constructor(content?: any, options?: any);
     setContent(content: any): void;
     getContent(): any;
-    sendTo(destination: Exchange | Queue, routingKey?: string): void;
+    sendTo(destination: Exchange | Queue, routingKey?: string): Promise<void>;
     ack(allUpTo?: boolean): void;
     nack(allUpTo?: boolean, requeue?: boolean): void;
     reject(requeue?: boolean): void;
@@ -108,7 +108,7 @@ export declare class Exchange {
      * deprecated, use 'exchange.send(message: Message, routingKey?: string)' instead
      */
     publish(content: any, routingKey?: string, options?: any): void;
-    send(message: Message, routingKey?: string): void;
+    send(message: Message, routingKey?: string): Promise<void>;
     rpc(requestParameters: any, routingKey?: string, callback?: (err: any, message: Message) => void): Promise<Message>;
     delete(): Promise<void>;
     close(): Promise<void>;
@@ -130,6 +130,7 @@ export declare namespace Exchange {
         alternateExchange?: string;
         arguments?: any;
         noCreate?: boolean;
+        confirms?: boolean;
     }
     interface InitializeResult {
         exchange: string;
@@ -159,7 +160,7 @@ export declare class Queue {
      * deprecated, use 'queue.send(message: Message)' instead
      */
     publish(content: any, options?: any): void;
-    send(message: Message): void;
+    send(message: Message): Promise<void>;
     rpc(requestParameters: any): Promise<Message>;
     prefetch(count: number): void;
     recover(): Promise<void>;

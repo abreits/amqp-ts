@@ -376,11 +376,11 @@ export class Message {
     return content;
   }
 
-  sendTo(destination: Exchange | Queue, routingKey: string = ""): void {
+  sendTo(destination: Exchange | Queue, routingKey: string = ""): Promise<void> {
     // inline function to send the message
-    var sendMessage = () => {
+    var sendMessage = (callback?: (err: any, ok: any) => void) => {
       try {
-        destination._channel.publish(exchange, routingKey, this.content, this.properties);
+        destination._channel.publish(exchange, routingKey, this.content, this.properties, callback);
       } catch (err) {
         log.log("debug", "Publish error: " + err.message, { module: "amqp-ts" });
         var destinationName = destination._name;
@@ -406,11 +406,32 @@ export class Message {
       exchange = destination._name;
     }
 
-    // execute sync when possible
-    if (destination.initialized.isFulfilled()) {
-      sendMessage();
+    if ((destination._options as Exchange.DeclarationOptions).confirms) {
+      const promise = new Promise ((resolve, reject) => {
+        sendMessage((err: any, ok: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(ok);
+          }
+        });
+      });
+
+      // execute sync when possible
+      if (destination.initialized.isFulfilled()) {
+        return promise;
+      } else {
+        return (<Promise<any>>destination.initialized)
+          .then(promise);
+      }
     } else {
-      (<Promise<any>>destination.initialized).then(sendMessage);
+      // execute sync when possible
+      if (destination.initialized.isFulfilled()) {
+        // if (destination.sho)
+        sendMessage();
+      } else {
+        (<Promise<any>>destination.initialized).then(sendMessage);
+      }
     }
   }
 
@@ -471,7 +492,7 @@ export class Exchange {
   _initialize() {
     this.initialized = new Promise<Exchange.InitializeResult>((resolve, reject) => {
       this._connection.initialized.then(() => {
-        this._connection._connection.createChannel((err, channel) => {
+        this._connection._connection[this._options.confirms ? "createConfirmChannel" : "createChannel"]((err, channel) => {
           /* istanbul ignore if */
           if (err) {
             reject(err);
@@ -526,8 +547,8 @@ export class Exchange {
     });
   }
 
-  send(message: Message, routingKey = ""): void {
-    message.sendTo(this, routingKey);
+  send(message: Message, routingKey = ""): Promise<void> {
+    return message.sendTo(this, routingKey);
   }
 
   rpc(requestParameters: any, routingKey = "",  callback?: (err, message: Message) => void): Promise<Message> {
@@ -715,6 +736,7 @@ export namespace Exchange {
     alternateExchange?: string;
     arguments?: any;
     noCreate?: boolean;
+    confirms?: boolean;
   }
   export interface InitializeResult {
     exchange: string;
@@ -838,8 +860,9 @@ export class Queue {
     }
   }
 
-  send(message: Message): void {
+  send(message: Message): Promise<void> {
     message.sendTo(this);
+    return Promise.resolve(true);
   }
 
   rpc(requestParameters: any): Promise<Message> {
