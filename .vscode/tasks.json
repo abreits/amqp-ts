@@ -1,50 +1,60 @@
 {
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
-    "version": "0.1.0",
+    "version": "2.0.0",
     "command": "docker",
-    "isShellCommand": true,
     "args": [
         "exec",
         "dev-amqp-ts"
     ],
-    "suppressTaskName": true,
-    "showOutput": "always",
     "tasks": [
         {
-            "taskName": "docker build",
-            "isBuildCommand": true,
+            "label": "docker build",
+            "type": "shell",
             "args": [
+                "exec",
+                "dev-amqp-ts",
                 "gulp"
-            ]
+            ],
+            "problemMatcher": [],
+            "group": "build"
         },
         {
-            "taskName": "docker test",
-            "isTestCommand": true,
+            "label": "docker test",
+            "type": "shell",
             "args": [
+                "exec",
+                "dev-amqp-ts",
                 "gulp",
                 "test"
-            ]
+            ],
+            "problemMatcher": [],
+            "group": "test"
         },
         {
-            "taskName": "docker coverage",
+            "label": "docker coverage",
+            "type": "shell",
             "args": [
+                "exec",
+                "dev-amqp-ts",
                 "gulp",
                 "test:coverage"
-            ]
+            ],
+            "problemMatcher": []
         },
         {
-            "taskName": "debug",
-            "suppressTaskName": true,
-            "isBuildCommand": false,
-            "isWatching": false,
+            "label": "debug",
+            "type": "shell",
             "args": [
+                "exec",
+                "dev-amqp-ts",
                 "node",
                 "--debug-brk",
                 "--nolazy",
                 "/src/node_modules/mocha/bin/_mocha",
                 "transpiled/amqp-ts.spec.js"
-            ]
+            ],
+            "problemMatcher": []
         }
     ]
 }
