@@ -588,6 +588,7 @@ export class Exchange {
                 if (err) {
                   reject(err);
                 } else {
+                  log.log("info", "Channel closed.", { module: "amqp-ts" });
                   delete this._channel;
                   delete this._connection;
                   resolve(null);
@@ -616,6 +617,7 @@ export class Exchange {
             if (err) {
               reject(err);
             } else {
+              log.log("info", "Channel closed.", { module: "amqp-ts" });
               delete this._channel;
               delete this._connection;
               resolve(null);
@@ -1060,6 +1062,7 @@ export class Queue {
                 if (err) {
                   reject(err);
                 } else {
+                  log.log("info", "Channel closed.", { module: "amqp-ts" });
                   delete this._channel;
                   delete this._connection;
                   resolve(<Queue.DeleteResult>ok);
@@ -1090,6 +1093,7 @@ export class Queue {
             if (err) {
               reject(err);
             } else {
+              log.log("info", "Channel closed.", { module: "amqp-ts" });
               delete this._channel;
               delete this._connection;
               resolve(null);
