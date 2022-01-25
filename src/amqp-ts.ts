@@ -455,8 +455,10 @@ export class Exchange {
         this._connection._connection.createConfirmChannel((err, channel) => {
           /* istanbul ignore if */
           if (err) {
+	    log.log("error", "Failed on channel creation.", { module: "amqp-ts" });
             reject(err);
           } else {
+	    log.log("info", "Channel created.", { module: "amqp-ts" });
             this._channel = channel;
             let callback = (err, ok) => {
               /* istanbul ignore if */
@@ -586,6 +588,7 @@ export class Exchange {
                 if (err) {
                   reject(err);
                 } else {
+                  log.log("info", "Channel closed.", { module: "amqp-ts" });
                   delete this._channel;
                   delete this._connection;
                   resolve(null);
@@ -614,6 +617,7 @@ export class Exchange {
             if (err) {
               reject(err);
             } else {
+              log.log("info", "Channel closed.", { module: "amqp-ts" });
               delete this._channel;
               delete this._connection;
               resolve(null);
@@ -745,8 +749,10 @@ export class Queue {
         this._connection._connection.createConfirmChannel((err, channel) => {
           /* istanbul ignore if */
           if (err) {
+	    log.log("error", "Failed on channel creation.", { module: "amqp-ts" });
             reject(err);
           } else {
+	    log.log("info", "Channel created.", { module: "amqp-ts" });
             this._channel = channel;
             let callback = (err, ok) => {
               /* istanbul ignore if */
@@ -1056,6 +1062,7 @@ export class Queue {
                 if (err) {
                   reject(err);
                 } else {
+                  log.log("info", "Channel closed.", { module: "amqp-ts" });
                   delete this._channel;
                   delete this._connection;
                   resolve(<Queue.DeleteResult>ok);
@@ -1086,6 +1093,7 @@ export class Queue {
             if (err) {
               reject(err);
             } else {
+              log.log("info", "Channel closed.", { module: "amqp-ts" });
               delete this._channel;
               delete this._connection;
               resolve(null);
