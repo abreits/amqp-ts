@@ -455,7 +455,7 @@ export class Exchange {
         this._connection._connection.createConfirmChannel((err, channel) => {
           /* istanbul ignore if */
           if (err) {
-	    log.log("error", "Failed on channel creation.", { module: "amqp-ts" });
+            log.log("error", "Failed on channel creation: " + err.message, { module: "amqp-ts" });
             reject(err);
           } else {
 	    log.log("info", "Channel created.", { module: "amqp-ts" });
@@ -749,7 +749,7 @@ export class Queue {
         this._connection._connection.createConfirmChannel((err, channel) => {
           /* istanbul ignore if */
           if (err) {
-	    log.log("error", "Failed on channel creation.", { module: "amqp-ts" });
+            log.log("error", "Failed on channel creation: " + err.message, { module: "amqp-ts" });
             reject(err);
           } else {
 	    log.log("info", "Channel created.", { module: "amqp-ts" });
@@ -1029,8 +1029,10 @@ export class Queue {
         this._channel.cancel(this._consumerTag, (err, ok) => {
           /* istanbul ignore if */
           if (err) {
+            log.log("error", "Channel failed on cancelling: " + err.message, { module: "amqp-ts" });
             reject(err);
           } else {
+            log.log("info", "Channel canceled.", { module: "amqp-ts" });
             delete this._consumerInitialized;
             delete this._consumer;
             delete this._consumerOptions;
