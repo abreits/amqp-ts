@@ -101,6 +101,27 @@ connection.completeConfiguration().then(() => {
 
 More examples can be found in the [tutorials directory](https://github.com/abreits/amqp-ts/tree/master/tutorials).
 
+###  Connection Status
+To know the status of the connection: `connection.isConnected`. Returns true if the connection exists and false, otherwise.
+
+###  Events
+    #on('open_connection', function() {...})
+It's emitted when a connection is concretized and can publish/subscribe in Rabbit Bus.
+
+    #on('close_connection', function() {...})
+It's emitted when a connection is closed, after calling the close method. 
+
+    #on('lost_connection', function() {...})
+It is emitted when the connection is lost and before attempting to re-establish the connection.
+  
+    #on('trying_connect', function() {...})
+It is emitted during the time that try re-establish the connection.
+
+    #on('re_established_connection', function() {...})
+It is emitted when the connection is re-established.
+
+    #on('error_connection', function(err) {...})
+It's emitted when a error is registered during the connection.
 
 ### Automatic Reconnection    <a name="reconnect"></a>
 
