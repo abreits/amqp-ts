@@ -28,10 +28,12 @@ var tsProject = ts.createProject({
   declaration: true
 });
 
-gulp.task('copy-to-lib', gulp.series(compile), function () {
-  return gulp.src('transpiled/amqp-ts.js')
-  .pipe(gulp.dest('lib'));
-});
+gulp.task('copy-to-lib', gulp.series(compile, function () {
+    return gulp.src('transpiled/amqp-ts.js').pipe(gulp.dest('lib'));
+  }, function () {
+    return gulp.src("transpiled/amqp-ts.d.ts").pipe(gulp.dest("lib"));
+  })
+);
 
 
 gulp.task('clean:all', function () {

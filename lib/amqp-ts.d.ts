@@ -17,6 +17,7 @@ export declare class Connection extends EventEmitter {
     private socketOptions;
     private reconnectStrategy;
     private connectedBefore;
+    private rebuildPromise;
     _connection: AmqpLib.Connection;
     _retry: number;
     _rebuilding: boolean;

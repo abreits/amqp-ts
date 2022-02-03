@@ -41,6 +41,7 @@ export class Connection extends EventEmitter {
   private socketOptions: any;
   private reconnectStrategy: Connection.ReconnectStrategy;
   private connectedBefore = false;
+  private rebuildPromise: Promise<void> | undefined;
 
   _connection: AmqpLib.Connection;
   _retry: number;
@@ -166,44 +167,59 @@ export class Connection extends EventEmitter {
   }
 
   _rebuildAll(err: Error): Promise<void> {
-    log.log("warn", "Connection error: " + err.message, { module: "amqp-ts" });
-
-    log.log("debug", "Rebuilding connection NOW.", { module: "amqp-ts" });
-    this.rebuildConnection();
-
-    //re initialize exchanges, queues and bindings if they exist
-    for (var exchangeId in this._exchanges) {
-      var exchange = this._exchanges[exchangeId];
-      log.log("debug", "Re-initialize Exchange '" + exchange._name + "'.", { module: "amqp-ts" });
-      exchange._initialize();
+    if (this.rebuildPromise) {
+      return this.rebuildPromise;
     }
-    for (var queueId in this._queues) {
-      var queue = this._queues[queueId];
-      var consumer = queue._consumer;
-      log.log("debug", "Re-initialize queue '" + queue._name + "'.", { module: "amqp-ts" });
-      queue._initialize();
-      if (consumer) {
-        log.log("debug", "Re-initialize consumer for queue '" + queue._name + "'.", { module: "amqp-ts" });
-        queue._initializeConsumer();
+
+    this.rebuildPromise = Promise.resolve().then(() => {
+      log.log("warn", "Connection error: " + err.message, { module: "amqp-ts" });
+
+      log.log("debug", "Rebuilding connection NOW.", { module: "amqp-ts" });
+      this.rebuildConnection();
+
+      //re initialize exchanges, queues and bindings if they exist
+      for (var exchangeId in this._exchanges) {
+        var exchange = this._exchanges[exchangeId];
+        log.log("debug", "Re-initialize Exchange '" + exchange._name + "'.", { module: "amqp-ts" });
+        exchange._initialize();
       }
-    }
-    for (var bindingId in this._bindings) {
-      var binding = this._bindings[bindingId];
-      log.log("debug", "Re-initialize binding from '" + binding._source._name + "' to '" +
-          binding._destination._name + "'.", { module: "amqp-ts" });
-      binding._initialize();
-    }
+      for (var queueId in this._queues) {
+        var queue = this._queues[queueId];
+        var consumer = queue._consumer;
+        log.log("debug", "Re-initialize queue '" + queue._name + "'.", { module: "amqp-ts" });
+        queue._initialize();
+        if (consumer) {
+          log.log("debug", "Re-initialize consumer for queue '" + queue._name + "'.", { module: "amqp-ts" });
+          queue._initializeConsumer();
+        }
+      }
+      for (var bindingId in this._bindings) {
+        var binding = this._bindings[bindingId];
+        log.log("debug", "Re-initialize binding from '" + binding._source._name + "' to '" +
+            binding._destination._name + "'.", { module: "amqp-ts" });
+        binding._initialize();
+      }
 
-    return new Promise<void>((resolve, reject) => {
-      this.completeConfiguration().then(() => {
-            log.log("debug", "Rebuild success.", { module: "amqp-ts" });
-            resolve(null);
-          }, /* istanbul ignore next */
-          (rejectReason) => {
-            log.log("debug", "Rebuild failed.", { module: "amqp-ts" });
-            reject(rejectReason);
-          });
+      return new Promise<void>((resolve, reject) => {
+        this.completeConfiguration().then(() => {
+              log.log("debug", "Rebuild success.", { module: "amqp-ts" });
+              resolve(null);
+            }, /* istanbul ignore next */
+            (rejectReason) => {
+              log.log("debug", "Rebuild failed.", { module: "amqp-ts" });
+              reject(rejectReason);
+            });
+      });
+    })
+    .then(() => {
+      this.rebuildPromise = undefined;
+    })
+    .catch((e) => {
+      this.rebuildPromise = undefined;
+      throw e;
     });
+
+    return this.rebuildPromise;
   }
 
   close(): Promise<void> {
