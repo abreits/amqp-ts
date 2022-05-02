@@ -21,10 +21,11 @@
     "test-integration": "gulp test:integration"
   },
   "dependencies": {
-    "amqplib": "^0.8.0",
     "@types/node": "^12.7.2",
+    "amqplib": "^0.8.0",
     "bluebird": "^3.3.5",
-    "winston": "^2.2.0"
+    "lodash": "^4.17.21",
+    "winston": "^3.3.3"
   },
   "devDependencies": {
     "@types/mocha": "^5.2.7",
@@ -41,7 +42,6 @@
     "merge2": "^0.3.7",
     "mocha": "^6.2.0",
     "source-map-support": "^0.3.3",
-    "tslint": "^5.19.0",
-    "typescript": "^3.5.3"
+    "tslint": "^5.19.0"
   }
 }
