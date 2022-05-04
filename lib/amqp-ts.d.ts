@@ -8,9 +8,8 @@
 /// <reference types="node" />
 import * as AmqpLib from "amqplib/callback_api";
 import * as Promise from "bluebird";
-import * as winston from "winston";
 import { EventEmitter } from "events";
-export declare var log: winston.LoggerInstance;
+export declare var log: import("./logger").LoggerInstance;
 export declare class Connection extends EventEmitter {
     initialized: Promise<void>;
     private url;
@@ -35,7 +34,7 @@ export declare class Connection extends EventEmitter {
     constructor(url?: string, socketOptions?: any, reconnectStrategy?: Connection.ReconnectStrategy);
     private rebuildConnection;
     private tryToConnect;
-    _rebuildAll(err: Error): Promise<void>;
+    _rebuildAll(error: Error): Promise<void>;
     close(): Promise<void>;
     /**
      * Make sure the whole defined connection topology is configured:
