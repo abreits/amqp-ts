@@ -1033,7 +1033,7 @@ export class Queue {
          * See https://github.com/amqp-node/amqplib/blob/v0.10.3/lib/channel.js#L495-L499
          *     https://www.rabbitmq.com/consumer-cancel.html
          */
-        log.error("Queue.onMessage - Message is null. Channel has been canceled.");
+        log.error("activateConsumerWrapper - Message is null. Channel has been canceled.");
         throw new Error("activateConsumerWrapper - Message is null. Channel has been canceled.");
       }
 
