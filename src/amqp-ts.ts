@@ -1029,12 +1029,12 @@ export class Queue {
     var activateConsumerWrapper = (msg: AmqpLib.Message) => {
       if (!msg) {
         /* basic.cancel is triggered on queue deletion if connection is not closed, it will dispatch an empty msg.
-         * Connection needs to be rebuilt in that case.
+         * Throw an exception so that the system is notified.
          * See https://github.com/amqp-node/amqplib/blob/v0.10.3/lib/channel.js#L495-L499
          *     https://www.rabbitmq.com/consumer-cancel.html
          */
-        this._connection._rebuildAll(new Error("Channel cancelled"));
-        return;
+        log.warn("activateConsumerWrapper - Message is null. Channel has been canceled.");
+        throw new Error("activateConsumerWrapper - Message is null. Channel has been canceled.");
       }
 
       try {

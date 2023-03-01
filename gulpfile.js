@@ -93,7 +93,7 @@ gulp.task('lint', function () {
 
 
 // unit tests, more a fast integration test because at the moment it uses an external AMQP server
-gulp.task('test', gulp.series('copy-to-lib'), function () {
+gulp.task('test', gulp.series('copy-to-lib', function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
   })
@@ -102,10 +102,10 @@ gulp.task('test', gulp.series('copy-to-lib'), function () {
       reporter: 'spec' // 'spec', 'dot'
     }))
     .on('error', swallowError);
-});
+}));
 
 // unit tests, more a fast integration test because at the moment it uses an external AMQP server
-gulp.task('test:dot', gulp.series('copy-to-lib'), function () {
+gulp.task('test:dot', gulp.series('copy-to-lib', function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
   })
@@ -114,10 +114,10 @@ gulp.task('test:dot', gulp.series('copy-to-lib'), function () {
       reporter: 'dot' // 'spec', 'dot'
     }))
     .on('error', swallowError);
-});
+}));
 
 // integration tests, at the moment more an extended version of the unit tests
-gulp.task('test:integration', gulp.series('copy-to-lib'), function () {
+gulp.task('test:integration', gulp.series('copy-to-lib', function () {
   return gulp.src('transpiled/**/*.spec-i.js', {
     read: false
   })
@@ -125,9 +125,9 @@ gulp.task('test:integration', gulp.series('copy-to-lib'), function () {
       reporter: 'dot' // 'spec', 'dot'
     }))
     .on('error', swallowError);
-});
+}));
 
-gulp.task('test:coverage', gulp.series('copy-to-lib'), function () {
+gulp.task('test:coverage', gulp.series('copy-to-lib', function () {
   return gulp.src('transpiled/**/*.spec.js', {
     read: false
   })
@@ -135,7 +135,7 @@ gulp.task('test:coverage', gulp.series('copy-to-lib'), function () {
       reporter: 'spec', // 'spec', 'dot'
       istanbul: true
     }));
-});
+}));
 
 
 // quick fix for gulp 4, migrating from gulp 3, fixing 'task never defined' errors
