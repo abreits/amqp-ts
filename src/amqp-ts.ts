@@ -398,17 +398,12 @@ export class Message {
       })
         .catch((error) => {
           exports.log.debug("Publish error: " + error.message, { module: "amqp-ts", error });
-          var destinationName = destination._name;
           var connection = destination._connection;
           exports.log.debug("Try to rebuild connection, before Call.", { module: "amqp-ts" });
 
           return connection._rebuildAll(error).then(() => {
-            exports.log.debug("Retransmitting message.", { module: "amqp-ts" });
-            if (destination instanceof Queue) {
-              return connection._queues[destinationName].publish(this.content, this.properties);
-            } else {
-              return connection._exchanges[destinationName].publish(this.content, routingKey, this.properties);
-            }
+            exports.log.info("Connection rebuilt, NOT retransmitting message.", { module: "amqp-ts" });
+            return Promise.resolve();
           });
         });
     };
@@ -561,11 +556,10 @@ export class Exchange {
         });
       }).catch((error) => {
         log.warn("Exchange publish error: " + error.message, { module: "amqp-ts", error });
-        var exchangeName = this._name;
         var connection = this._connection;
         return connection._rebuildAll(error).then(() => {
-          log.debug("Retransmitting message.", { module: "amqp-ts" });
-          return connection._exchanges[exchangeName].publish(content, routingKey, options);
+          log.info("Connection rebuilt, NOT retransmitting message.", { module: "amqp-ts" });
+          return Promise.resolve();
         });
       });
     });
@@ -874,12 +868,11 @@ export class Queue {
         });
       }).catch((error) => {
         log.debug( "Queue publish error: " + error.message, { module: "amqp-ts", error });
-        var queueName = this._name;
         var connection = this._connection;
         log.debug("Try to rebuild connection, before Call.", { module: "amqp-ts" });
         return connection._rebuildAll(error).then(() => {
-          log.debug("Retransmitting message.", { module: "amqp-ts" });
-          return connection._queues[queueName].publish(content, options);
+          log.info("Connection rebuilt, NOT retransmitting message.", { module: "amqp-ts" });
+          return Promise.resolve();
         });
       });
     };
