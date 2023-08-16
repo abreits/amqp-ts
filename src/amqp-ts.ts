@@ -420,7 +420,7 @@ export class Message {
     if (destination.initialized.isFulfilled()) {
       return sendMessage();
     } else {
-      return (<Promise<any>>destination.initialized).then(sendMessage);
+      return Promise.reject(new Error("Connection is not ready."));
     }
   }
 
@@ -882,7 +882,7 @@ export class Queue {
     if (this.initialized.isFulfilled()) {
       return sendMessage();
     } else {
-      return this.initialized.then(sendMessage);
+      return Promise.reject(new Error("Connection is not ready."));
     }
   }
 
