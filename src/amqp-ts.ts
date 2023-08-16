@@ -402,8 +402,8 @@ export class Message {
           exports.log.debug("Try to rebuild connection, before Call.", { module: "amqp-ts" });
 
           return connection._rebuildAll(error).then(() => {
-            exports.log.info("Connection rebuilt, NOT retransmitting message.", { module: "amqp-ts" });
-            return Promise.resolve();
+            exports.log.warn("Connection rebuilt, NOT retransmitting message.", { module: "amqp-ts" });
+            return Promise.reject(error);
           });
         });
     };
@@ -558,8 +558,8 @@ export class Exchange {
         log.warn("Exchange publish error: " + error.message, { module: "amqp-ts", error });
         var connection = this._connection;
         return connection._rebuildAll(error).then(() => {
-          log.info("Connection rebuilt, NOT retransmitting message.", { module: "amqp-ts" });
-          return Promise.resolve();
+          log.warn("Connection rebuilt, NOT retransmitting message.", { module: "amqp-ts" });
+          return Promise.reject(error);
         });
       });
     });
@@ -871,8 +871,8 @@ export class Queue {
         var connection = this._connection;
         log.debug("Try to rebuild connection, before Call.", { module: "amqp-ts" });
         return connection._rebuildAll(error).then(() => {
-          log.info("Connection rebuilt, NOT retransmitting message.", { module: "amqp-ts" });
-          return Promise.resolve();
+          log.warn("Connection rebuilt, NOT retransmitting message.", { module: "amqp-ts" });
+          return Promise.reject(error);
         });
       });
     };
