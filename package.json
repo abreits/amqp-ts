@@ -16,6 +16,7 @@
   "main": "lib/amqp-ts.js",
   "typings": "lib/amqp-ts.d.ts",
   "scripts": {
+    "build": "gulp build:only",
     "docker-develop": "npm install && node tools/alive",
     "test": "gulp test",
     "test-integration": "gulp test:integration"

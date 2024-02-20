@@ -140,6 +140,7 @@ gulp.task('test:coverage', gulp.series('copy-to-lib', function () {
 
 // quick fix for gulp 4, migrating from gulp 3, fixing 'task never defined' errors
 gulp.task('build', gulp.series(compile, 'copy-to-lib', 'test:dot'));
+gulp.task('build:only', gulp.series(compile, 'copy-to-lib'));
 gulp.task('build:clean', gulp.series(clean, compile, 'test:dot'));
 gulp.task('default', gulp.series('build:clean'));
 
