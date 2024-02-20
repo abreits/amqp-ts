@@ -3,6 +3,12 @@ amqp-ts (AMQP TypeScript)
 
 This is a summary. See the [amqp-ts Wiki](https://github.com/abreits/amqp-ts/wiki) for the full documentation of the library.
 
+## Contributing
+
+Before making changes, be sure that you are using the default node version set in the `.nvmrc` file.
+
+After introducing new changes, be sure to run `npm run build` to generate the transpiled JS.
+
 ## Table of Contents
 
 - [Overview](#overview)

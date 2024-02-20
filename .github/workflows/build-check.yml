@@ -1,0 +1,36 @@
+name: Build and Verify JS
+on:
+  pull_request:
+
+env:
+  NODE_VERSION: "16.13.2"
+jobs:
+  test:
+    runs-on: [self-hosted]
+    name: Test
+    steps:
+      - uses: zendesk/checkout@v3
+        name: Checkout
+
+      - uses: zendesk/setup-node@v3
+        name: Setup Node
+        with:
+          node-version-file: '.nvmrc'
+
+      - uses: zendesk/cache@v3
+        name: Cache Node development dependencies
+        id: node-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node_modules-${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Node development dependencies
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Build lib
+        run: npm run build
+
+      - name: Check for uncommitted changes
+        run: |
+          git diff --exit-code || (echo "Uncommitted changes found after build. Please commit any changes that result from the build." && exit 1)
